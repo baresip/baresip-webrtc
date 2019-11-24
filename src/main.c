@@ -42,6 +42,8 @@ static void usage(void)
 		   "Usage: baresip-webrtc [options]\n"
 		   "\n"
 		   "options:\n"
+		   "\t-f <path>        Config path\n"
+                   "\t-h               Help\n"
 		   "\n");
 }
 
@@ -54,7 +56,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 
-		const int c = getopt(argc, argv, "hl:u:t");
+		const int c = getopt(argc, argv, "hl:f:u:t");
 		if (0 > c)
 			break;
 
@@ -64,6 +66,9 @@ int main(int argc, char *argv[])
 		default:
 			err = EINVAL;
 			/*@fallthrough@*/
+		case 'f':
+			conf_path_set(optarg);
+			break;
 		case 'h':
 			usage();
 			return err;
