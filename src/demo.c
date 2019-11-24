@@ -24,6 +24,8 @@ enum {HTTP_PORT = 9000};
 static struct http_sock *httpsock;
 static struct http_conn *conn_pending;
 static struct rtcsession *sess;
+const struct mnat *mnat;
+const struct menc *menc;
 
 
 static void reply(struct http_conn *conn, struct mbuf *mb)
@@ -89,8 +91,6 @@ static void session_close_handler(int err, void *arg)
 
 static int create_session(struct mbuf *offer)
 {
-	const struct mnat *mnat;
-	const struct menc *menc;
 	struct sa laddr;
 	struct config config = *conf_config();
 	struct rtcsession_param param = {
@@ -103,20 +103,6 @@ static int create_session(struct mbuf *offer)
 	config.avt.rtcp_mux = true;
 
 	sa_set_str(&laddr, "127.0.0.1", 0);
-
-	mnat = mnat_find(baresip_mnatl(), "ice");
-	if (!mnat) {
-		warning("demo: medianat 'ice' not found\n");
-		err = ENOENT;
-		goto out;
-	}
-
-	menc = menc_find(baresip_mencl(), "dtls_srtp");
-	if (!menc) {
-		warning("demo: mediaenc 'dtls-srtp' not found\n");
-		err = ENOENT;
-		goto out;
-	}
 
 	if (sess) {
 		err = EBUSY;
@@ -225,6 +211,18 @@ int demo_init(void)
 {
 	struct sa laddr;
 	int err;
+
+	mnat = mnat_find(baresip_mnatl(), "ice");
+	if (!mnat) {
+		warning("demo: medianat 'ice' not found\n");
+		return ENOENT;
+	}
+
+	menc = menc_find(baresip_mencl(), "dtls_srtp");
+	if (!menc) {
+		warning("demo: mediaenc 'dtls-srtp' not found\n");
+		return ENOENT;
+	}
 
 	sa_set_str(&laddr, "0.0.0.0", HTTP_PORT);
 
