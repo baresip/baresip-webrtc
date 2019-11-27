@@ -202,7 +202,9 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 	if (!sess)
 		return ENOMEM;
 
+	/* RFC 7022 */
 	rand_str(sess->cname, sizeof(sess->cname));
+
 	stream_prm.cname = sess->cname;
 
 	err = sdp_session_alloc(&sess->sdp, laddr);
