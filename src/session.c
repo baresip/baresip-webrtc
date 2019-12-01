@@ -69,7 +69,7 @@ static void audio_event_handler(int key, bool end, void *arg)
 	struct rtcsession *sess = arg;
 	(void)sess;
 
-	info("rtcsession: recv event: key=%d ('%c')\n", key, key);
+	info("rtcsession: recv DTMF event: key=%d ('%c')\n", key, key);
 }
 
 
@@ -248,7 +248,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 				  mnat, sess->mnats,
 				  menc, sess->mencs,
 				  20, aucodecl, !got_offer,
-				  audio_event_handler,
+				  audio_event_handler, NULL,
 				  audio_err_handler, sess);
 		if (err) {
 			warning("rtcsession: audio alloc failed (%m)\n", err);
@@ -266,7 +266,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		struct stream *strm = le->data;
 
 		stream_set_session_handlers(strm, mnatconn_handler,
-					    NULL, sess);
+					    NULL, NULL, sess);
 	}
 
 	if (offer) {
