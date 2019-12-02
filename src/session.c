@@ -124,7 +124,6 @@ static void menc_event_handler(enum menc_event event,
 			       const char *prm, void *arg)
 {
 	struct rtcsession *sess = arg;
-	struct stream *strm;
 
 	info("rtcsession: mediaenc event '%s' (%s)\n",
 	     menc_event_name(event), prm);
@@ -138,16 +137,12 @@ static void menc_event_handler(enum menc_event event,
 			stream_set_secure(audio_strm(sess->au), true);
 			stream_start(audio_strm(sess->au));
 
-			strm = audio_strm(sess->au);
-
 			if (sess->estabh)
 				sess->estabh(true, sess->arg);
 		}
 		else if (strstr(prm, "video")) {
 			stream_set_secure(video_strm(sess->vid), true);
 			stream_start(video_strm(sess->vid));
-
-			strm = video_strm(sess->vid);
 
 			if (sess->estabh)
 				sess->estabh(false, sess->arg);
