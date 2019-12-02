@@ -12,6 +12,17 @@ hangupButton.disabled = true;
 callButton.onclick = start_call;
 hangupButton.onclick = hangup_call;
 
+const remoteVideo = document.getElementById('remoteVideo');
+
+
+remoteVideo.addEventListener('loadedmetadata', function() {
+  console.log(`Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px`);
+});
+
+remoteVideo.addEventListener('resize', () => {
+  console.log(`Remote video size changed to ${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`);
+});
+
 
 let pc1;
 let localStream;
@@ -19,7 +30,7 @@ let localStream;
 
 const offerOptions = {
   offerToReceiveAudio: 1,
-  offerToReceiveVideo: 0,
+  offerToReceiveVideo: 1,
   voiceActivityDetection: false
 };
 
@@ -47,7 +58,7 @@ function start_call() {
   navigator.mediaDevices
     .getUserMedia({
       audio: true,
-      video: false
+      video: true
     })
     .then(gotStream)
     .catch(e => {
@@ -146,6 +157,11 @@ function gotRemoteStream(e) {
     audio.srcObject = e.streams[0];
     console.log('Received remote stream');
   }
+
+  if (remoteVideo.srcObject !== e.streams[0]) {
+      remoteVideo.srcObject = e.streams[0];
+         console.log('pc2 received remote stream');
+    }
 }
 
 

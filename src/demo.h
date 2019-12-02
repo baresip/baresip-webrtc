@@ -15,7 +15,7 @@ struct stream;
 struct rtcsession;
 
 typedef void (rtcsession_gather_h)(void *arg);
-typedef void (rtcsession_estab_h)(struct stream *strm, void *arg);
+typedef void (rtcsession_estab_h)(bool audio, void *arg);
 typedef void (rtcsession_close_h)(int err, void *arg);
 
 struct rtcsession_param {
@@ -36,6 +36,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 int rtcsession_encode_answer(struct rtcsession *sess, struct mbuf **mb);
 int rtcsession_start_ice(struct rtcsession *sess);
 int rtcsession_start_audio(struct rtcsession *sess);
+int rtcsession_start_video(struct rtcsession *sess);
 
 
 int load_file(struct mbuf *mb, const char *filename);

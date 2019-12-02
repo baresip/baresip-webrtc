@@ -14,6 +14,7 @@ struct rtcsession {
 	struct list streaml;
 	struct sdp_session *sdp;
 	struct audio *au;
+	struct video *vid;
 	const struct mnat *mnat;
 	struct mnat_sess *mnats;
 	struct menc_sess *mencs;
@@ -47,6 +48,7 @@ static void destructor(void *data)
 	info("*** Session *** %H\n", audio_debug, sess->au);
 
 	mem_deref(sess->au);
+	mem_deref(sess->vid);
 	mem_deref(sess->sdp);
 	mem_deref(sess->mnats);
 	mem_deref(sess->mencs);
@@ -78,6 +80,16 @@ static void audio_err_handler(int err, const char *str, void *arg)
 	struct rtcsession *sess = arg;
 
 	warning("rtcsession: audio error: %m (%s)\n", err, str);
+
+	session_close(sess, err);
+}
+
+
+static void video_err_handler(int err, const char *str, void *arg)
+{
+	struct rtcsession *sess = arg;
+
+	warning("rtcsession: video error: %m (%s)\n", err, str);
 
 	session_close(sess, err);
 }
@@ -129,7 +141,16 @@ static void menc_event_handler(enum menc_event event,
 			strm = audio_strm(sess->au);
 
 			if (sess->estabh)
-				sess->estabh(strm, sess->arg);
+				sess->estabh(true, sess->arg);
+		}
+		else if (strstr(prm, "video")) {
+			stream_set_secure(video_strm(sess->vid), true);
+			stream_start(video_strm(sess->vid));
+
+			strm = video_strm(sess->vid);
+
+			if (sess->estabh)
+				sess->estabh(false, sess->arg);
 		}
 		else {
 			info("rtcsession: mediaenc: no match for stream"
@@ -257,9 +278,20 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 	}
 
 	if (prm->video) {
-		warning("rtcsession: no video yet ..\n");
-		err = ENOTSUP;
-		goto out;
+		err = video_alloc(&sess->vid, &sess->streaml,
+				  &stream_prm,
+				  cfg,
+				  sess->sdp, 1,
+				  mnat, sess->mnats,
+				  menc, sess->mencs,
+				  NULL, baresip_vidcodecl(),
+				  NULL,
+				  !got_offer,
+				  video_err_handler, sess);
+		if (err) {
+			warning("rtcsession: video alloc failed (%m)\n", err);
+			goto out;
+		}
 	}
 
 	for (le = sess->streaml.head; le; le = le->next) {
@@ -279,6 +311,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 
 	/* must be done after sdp_decode() */
 	stream_update(audio_strm(sess->au));
+	stream_update(video_strm(sess->vid));
 
 	sess->gatherh = gatherh;
 	sess->estabh = estabh;
@@ -379,6 +412,48 @@ int rtcsession_start_audio(struct rtcsession *sess)
 	}
 	else {
 		info("rtcsession: audio stream is disabled..\n");
+	}
+
+	return 0;
+}
+
+
+int rtcsession_start_video(struct rtcsession *sess)
+{
+	const struct sdp_format *sc;
+	int err = 0;
+
+	if (!sess)
+		return EINVAL;
+
+	if (!sess->ice_conn || !sess->dtls_ok) {
+		warning("rtcsession: start: ice or dtls not ready\n");
+		return EPROTO;
+	}
+
+	info("rtcsession: start video\n");
+
+	/* Video Stream */
+	sc = sdp_media_rformat(stream_sdpmedia(video_strm(sess->vid)), NULL);
+	if (sc) {
+		struct vidcodec *vc = sc->data;
+
+		err  = video_encoder_set(sess->vid, vc, sc->pt, sc->params);
+		if (err) {
+			warning("rtcsession: start:"
+				" video_encoder_set error: %m\n", err);
+			return err;
+		}
+
+		err = video_start(sess->vid, NULL);
+		if (err) {
+			warning("rtcsession: start:"
+				" video_start error: %m\n", err);
+			return err;
+		}
+	}
+	else {
+		info("rtcsession: video stream is disabled..\n");
 	}
 
 	return 0;

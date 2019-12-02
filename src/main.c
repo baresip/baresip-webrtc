@@ -22,7 +22,9 @@ static const char *modv[] = {
 	"ice",
 	"dtls_srtp",
 	"g711",
-	"aufile"
+	"aufile",
+	"cairo",
+	"vp8"
 };
 
 

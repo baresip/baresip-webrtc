@@ -65,15 +65,25 @@ static void session_gather_handler(void *arg)
 }
 
 
-static void session_estab_handler(struct stream *strm, void *arg)
+static void session_estab_handler(bool audio, void *arg)
 {
 	int err;
 
 	(void)arg;
 
-	err = rtcsession_start_audio(sess);
-	if (err) {
-		warning("demo: could not start audio (%m)\n", err);
+	info("demo: stream established: %s\n", audio ? "audio" : "video");
+
+	if (audio) {
+		err = rtcsession_start_audio(sess);
+		if (err) {
+			warning("demo: could not start audio (%m)\n", err);
+		}
+	}
+	else {
+		err = rtcsession_start_video(sess);
+		if (err) {
+			warning("demo: could not start video (%m)\n", err);
+		}
 	}
 }
 
@@ -95,7 +105,7 @@ static int create_session(struct mbuf *offer)
 	struct config config = *conf_config();
 	struct rtcsession_param param = {
 		.audio = true,
-		.video = false
+		.video = true
 	};
 	int err;
 
