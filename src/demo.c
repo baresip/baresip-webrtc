@@ -22,6 +22,7 @@ enum {HTTP_PORT = 9000};
 
 
 static struct http_sock *httpsock;
+static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
 static struct rtcsession *sess;
 const struct mnat *mnat;
@@ -241,7 +242,16 @@ int demo_init(void)
 	if (err)
 		return err;
 
-	info("demo: listening on %J\n", &laddr);
+	info("demo: listening on HTTP %J\n", &laddr);
+
+	sa_set_port(&laddr, sa_port(&laddr) + 1);
+
+	err = https_listen(&httpssock, &laddr, "./share/cert.pem",
+			   http_req_handler, NULL);
+	if (err)
+		return err;
+
+	info("demo: listening on HTTPS %J\n", &laddr);
 
 	return 0;
 }
@@ -251,6 +261,7 @@ int demo_close(void)
 {
 	sess = mem_deref(sess);
 	conn_pending = mem_deref(conn_pending);
+	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
 
 	return 0;

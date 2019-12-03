@@ -94,7 +94,10 @@ function onCreateSessionDescriptionError(error) {
 
 function send_offer(sdp) {
   var xhr = new XMLHttpRequest();
-  xhr.open("POST", 'http://' + self.location.host + '/call', true);
+
+  console.log('send offer: ' + self.location);
+
+  xhr.open("POST", '' + self.location + 'call', true);
 
   //Send the proper header information along with the request
   xhr.setRequestHeader("Content-Type", "application/sdp");
@@ -147,7 +150,7 @@ function hangup_call() {
 
   // send a message to the server
   var xhr = new XMLHttpRequest();
-  xhr.open("POST", 'http://' + self.location.host + '/hangup', true);
+  xhr.open("POST", '' + self.location + 'hangup', true);
   xhr.send();
 }
 
