@@ -123,6 +123,9 @@ int main(int argc, char *argv[])
 	str_ncpy(config->audio.src_dev, "./share/sine_8000.wav",
 		 sizeof(config->audio.src_dev));
 
+	str_ncpy(config->video.src_mod, "cairo",
+		 sizeof(config->video.src_mod));
+
 	err = demo_init();
 	if (err) {
 		re_fprintf(stderr, "failed to init demo: %m\n", err);
