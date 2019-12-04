@@ -47,6 +47,9 @@ static void destructor(void *data)
 
 	info("*** Session *** %H\n", audio_debug, sess->au);
 
+	audio_stop(sess->au);
+	video_stop(sess->vid);
+
 	mem_deref(sess->au);
 	mem_deref(sess->vid);
 	mem_deref(sess->sdp);
