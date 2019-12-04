@@ -187,6 +187,17 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 }
 
 
+static void stream_error_handler(struct stream *strm, int err, void *arg)
+{
+	struct rtcsession *sess = arg;
+	(void)strm;
+
+	warning("rtcsession: stream error (%m)\n", err);
+
+	session_close(sess, err);
+}
+
+
 int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		      const struct rtcsession_param *prm,
 		      struct list *aucodecl, const struct sa *laddr,
@@ -293,7 +304,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		struct stream *strm = le->data;
 
 		stream_set_session_handlers(strm, mnatconn_handler,
-					    NULL, NULL, sess);
+					    NULL, stream_error_handler, sess);
 	}
 
 	if (offer) {
