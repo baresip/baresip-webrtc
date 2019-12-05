@@ -10,6 +10,11 @@
 #include "demo.h"
 
 
+enum {
+	MEDIA_AUDIO = 0,
+	MEDIA_VIDEO = 1,
+};
+
 struct rtcsession {
 	struct list streaml;
 	struct sdp_session *sdp;
@@ -27,25 +32,41 @@ struct rtcsession {
 	/* steps: */
 	bool gather_ok;
 	bool sdp_ok;
-	bool ice_conn;
-	bool dtls_ok;
+
+	struct media {
+
+		const char *name;
+		bool ice_conn;
+		bool dtls_ok;
+		bool rtcp;
+
+	} mediav[2];
 };
 
 
 static void destructor(void *data)
 {
 	struct rtcsession *sess = data;
+	size_t i;
 
 	info("rtcsession: destroyed\n");
+
+	info("*** RTCSession summary ***\n");
 
 	info("steps:\n");
 	info(".. gather:   %d\n", sess->gather_ok);
 	info(".. sdp:      %d\n", sess->sdp_ok);
-	info(".. ice_conn: %d\n", sess->ice_conn);
-	info(".. dtls:     %d\n", sess->dtls_ok);
-	info("\n");
 
-	info("*** Session *** %H\n", audio_debug, sess->au);
+	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
+		struct media *media = &sess->mediav[i];
+
+		info(".. %s:\n", media->name);
+		info(".. ice_conn: %d\n", media->ice_conn);
+		info(".. dtls:     %d\n", media->dtls_ok);
+		info(".. rtcp:     %d\n", media->rtcp);
+	}
+
+	info("\n");
 
 	audio_stop(sess->au);
 	video_stop(sess->vid);
@@ -55,6 +76,18 @@ static void destructor(void *data)
 	mem_deref(sess->sdp);
 	mem_deref(sess->mnats);
 	mem_deref(sess->mencs);
+}
+
+
+static struct media *lookup_media(struct rtcsession *sess,
+				  struct stream *strm)
+{
+	if (audio_strm(sess->au) == strm)
+		return &sess->mediav[MEDIA_AUDIO];
+	else if (video_strm(sess->vid) == strm)
+		return &sess->mediav[MEDIA_VIDEO];
+	else
+		return NULL;
 }
 
 
@@ -134,9 +167,10 @@ static void menc_event_handler(enum menc_event event,
 	switch (event) {
 
 	case MENC_EVENT_SECURE:
-		sess->dtls_ok = true;  /* todo: all streams */
-
 		if (strstr(prm, "audio")) {
+
+			sess->mediav[MEDIA_AUDIO].dtls_ok = true;
+
 			stream_set_secure(audio_strm(sess->au), true);
 			stream_start(audio_strm(sess->au));
 
@@ -144,6 +178,8 @@ static void menc_event_handler(enum menc_event event,
 				sess->estabh(true, sess->arg);
 		}
 		else if (strstr(prm, "video")) {
+			sess->mediav[MEDIA_VIDEO].dtls_ok = true;
+
 			stream_set_secure(video_strm(sess->vid), true);
 			stream_start(video_strm(sess->vid));
 
@@ -176,17 +212,27 @@ static void menc_error_handler(int err, void *arg)
 static void mnatconn_handler(struct stream *strm, void *arg)
 {
 	struct rtcsession *sess = arg;
+	struct media *media = lookup_media(sess, strm);
 	int err;
 
 	info("rtcsession: ice connected.\n");
 
-	/* todo: check all streams */
-	sess->ice_conn = true;
+	media->ice_conn = true;
 
 	err = stream_start_mediaenc(strm);
 	if (err) {
 		session_close(sess, err);
 	}
+}
+
+
+static void rtcp_handler(struct stream *strm,
+			 struct rtcp_msg *msg, void *arg)
+{
+	struct rtcsession *sess = arg;
+	struct media *media = lookup_media(sess, strm);
+
+	media->rtcp = true;
 }
 
 
@@ -231,6 +277,9 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 	sess = mem_zalloc(sizeof(*sess), destructor);
 	if (!sess)
 		return ENOMEM;
+
+	sess->mediav[MEDIA_AUDIO].name = "audio";
+	sess->mediav[MEDIA_VIDEO].name = "video";
 
 	/* RFC 7022 */
 	rand_str(sess->cname, sizeof(sess->cname));
@@ -307,7 +356,8 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		struct stream *strm = le->data;
 
 		stream_set_session_handlers(strm, mnatconn_handler,
-					    NULL, stream_error_handler, sess);
+					    rtcp_handler,
+					    stream_error_handler, sess);
 	}
 
 	if (offer) {
@@ -388,13 +438,16 @@ int rtcsession_start_ice(struct rtcsession *sess)
 int rtcsession_start_audio(struct rtcsession *sess)
 {
 	const struct sdp_format *sc;
+	struct media *media;
 	int err = 0;
 
 	if (!sess)
 		return EINVAL;
 
-	if (!sess->ice_conn || !sess->dtls_ok) {
-		warning("rtcsession: start: ice or dtls not ready\n");
+	media = &sess->mediav[MEDIA_AUDIO];
+
+	if (!media->ice_conn || !media->dtls_ok) {
+		warning("rtcsession: start_audio: ice or dtls not ready\n");
 		return EPROTO;
 	}
 
@@ -430,12 +483,15 @@ int rtcsession_start_audio(struct rtcsession *sess)
 int rtcsession_start_video(struct rtcsession *sess)
 {
 	const struct sdp_format *sc;
+	struct media *media;
 	int err = 0;
 
 	if (!sess)
 		return EINVAL;
 
-	if (!sess->ice_conn || !sess->dtls_ok) {
+	media = &sess->mediav[MEDIA_AUDIO];
+
+	if (!media->ice_conn || !media->dtls_ok) {
 		warning("rtcsession: start: ice or dtls not ready\n");
 		return EPROTO;
 	}
