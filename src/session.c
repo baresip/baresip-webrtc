@@ -38,6 +38,7 @@ struct rtcsession {
 		const char *name;
 		bool ice_conn;
 		bool dtls_ok;
+		bool rtp;
 		bool rtcp;
 
 	} mediav[2];
@@ -63,6 +64,7 @@ static void destructor(void *data)
 		info(".. %s:\n", media->name);
 		info(".. ice_conn: %d\n", media->ice_conn);
 		info(".. dtls:     %d\n", media->dtls_ok);
+		info(".. rtp:      %d\n", media->rtp);
 		info(".. rtcp:     %d\n", media->rtcp);
 	}
 
@@ -226,6 +228,17 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 }
 
 
+static void rtpestab_handler(struct stream *strm, void *arg)
+{
+	struct rtcsession *sess = arg;
+	struct media *media = lookup_media(sess, strm);
+
+	info("rtcsession: rtp established (%s)\n", media->name);
+
+	media->rtp = true;
+}
+
+
 static void rtcp_handler(struct stream *strm,
 			 struct rtcp_msg *msg, void *arg)
 {
@@ -356,6 +369,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		struct stream *strm = le->data;
 
 		stream_set_session_handlers(strm, mnatconn_handler,
+					    rtpestab_handler,
 					    rtcp_handler,
 					    stream_error_handler, sess);
 	}
