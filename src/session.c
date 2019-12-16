@@ -26,7 +26,6 @@ struct media {
 	} u;
 
 	struct rtcsession *sess;  /* parent */
-	struct stream *strm;
 	unsigned ix;
 	bool ice_conn;
 	bool dtls_ok;
@@ -58,6 +57,16 @@ struct rtcsession {
 };
 
 
+static struct stream *media_get_stream(const struct media *media)
+{
+	switch (media->type) {
+
+	case MEDIA_TYPE_AUDIO: return audio_strm(media->u.au);
+	case MEDIA_TYPE_VIDEO: return video_strm(media->u.vid);
+	default:               return NULL;
+	}
+}
+
 static void destructor(void *data)
 {
 	struct rtcsession *sess = data;
@@ -75,10 +84,11 @@ static void destructor(void *data)
 	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
 		struct media *media = &sess->mediav[i];
 
-		if (!media->strm)
+		if (!media->u.p)
 			continue;
 
-		info(".. #%u '%s'\n", media->ix, stream_name(media->strm));
+		info(".. #%u '%s'\n",
+		     media->ix, stream_name(media_get_stream(media)));
 		info(".. ice_conn: %d\n", media->ice_conn);
 		info(".. dtls:     %d\n", media->dtls_ok);
 		info(".. rtp:      %d\n", media->rtp);
@@ -120,7 +130,7 @@ static struct media *lookup_media(struct rtcsession *sess,
 
 		struct media *media = &sess->mediav[i];
 
-		if (strm == media->strm)
+		if (strm == media_get_stream(media))
 			return media;
 	}
 
@@ -423,7 +433,6 @@ int rtcsession_add_audio(struct rtcsession *sess,
 	}
 
 	strm = audio_strm(media->u.au);
-	media->strm = strm;
 
 	stream_set_session_handlers(strm, mnatconn_handler,
 				    rtpestab_handler,
@@ -474,7 +483,6 @@ int rtcsession_add_video(struct rtcsession *sess,
 	}
 
 	strm = video_strm(media->u.vid);
-	media->strm = strm;
 
 	stream_set_session_handlers(strm, mnatconn_handler,
 				    rtpestab_handler,
