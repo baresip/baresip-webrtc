@@ -71,10 +71,13 @@ function gotStream(stream) {
   hangupButton.disabled = false;
 
   console.log('Received local stream');
+  console.log(stream)
 
   localStream = stream;
 
   const audioTracks = localStream.getAudioTracks();
+
+  console.log('audio tracks: ' + audioTracks.length);
   if (audioTracks.length > 0) {
     console.log(`Using Audio device: ${audioTracks[0].label}`);
   }
@@ -156,6 +159,10 @@ function hangup_call() {
 
 
 function gotRemoteStream(e) {
+
+  console.log('got remote stream (track)');
+  console.log(e);
+
   if (audio.srcObject !== e.streams[0]) {
     audio.srcObject = e.streams[0];
     console.log('Received remote stream');
@@ -164,7 +171,7 @@ function gotRemoteStream(e) {
   if (remoteVideo.srcObject !== e.streams[0]) {
       remoteVideo.srcObject = e.streams[0];
          console.log('pc2 received remote stream');
-    }
+  }
 }
 
 

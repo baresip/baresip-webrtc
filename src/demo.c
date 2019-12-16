@@ -12,10 +12,9 @@
 /*
   TODO:
 
-  - move module to an application using libbaresip ?
-  - add support for video
-  - add support for multiple sessions
-  - convert HTTP content to JSON?
+  ok - add support for video
+     - add support for multiple sessions
+     - convert HTTP content to JSON?
  */
 
 enum {HTTP_PORT = 9000};
@@ -66,22 +65,23 @@ static void session_gather_handler(void *arg)
 }
 
 
-static void session_estab_handler(bool audio, void *arg)
+static void session_estab_handler(bool audio, unsigned mediaix, void *arg)
 {
 	int err;
 
 	(void)arg;
 
-	info("demo: stream established: %s\n", audio ? "audio" : "video");
+	info("demo: stream established: '%s' index=%u\n",
+	     audio ? "audio" : "video", mediaix);
 
 	if (audio) {
-		err = rtcsession_start_audio(sess);
+		err = rtcsession_start_audio(sess, mediaix);
 		if (err) {
 			warning("demo: could not start audio (%m)\n", err);
 		}
 	}
 	else {
-		err = rtcsession_start_video(sess);
+		err = rtcsession_start_video(sess, mediaix);
 		if (err) {
 			warning("demo: could not start video (%m)\n", err);
 		}
@@ -105,8 +105,7 @@ static int create_session(struct mbuf *offer)
 	struct sa laddr;
 	struct config config = *conf_config();
 	struct rtcsession_param param = {
-		.audio = true,
-		.video = true
+		.unused = 0
 	};
 	int err;
 
@@ -122,7 +121,6 @@ static int create_session(struct mbuf *offer)
 
 	/* create a new session object, send SDP to it */
 	err = rtcsession_create(&sess, &config, &param,
-				baresip_aucodecl(),
 				&laddr,
 				offer, mnat, menc,
 				"stun.l.google.com", 19302,
@@ -134,7 +132,28 @@ static int create_session(struct mbuf *offer)
 		goto out;
 	}
 
+	err = rtcsession_add_audio(sess, &config, baresip_aucodecl());
+	if (err) {
+		warning("demo: add_audio failed (%m)\n", err);
+		goto out;
+	}
+
+	err = rtcsession_add_video(sess, &config, baresip_vidcodecl());
+	if (err) {
+		warning("demo: add_video failed (%m)\n", err);
+		goto out;
+	}
+
+	err = rtcsession_decode_offer(sess, offer);
+	if (err) {
+		warning("demo: decode offer failed (%m)\n", err);
+		goto out;
+	}
+
  out:
+	if (err)
+		sess = mem_deref(sess);
+
 	return err;
 }
 
