@@ -404,7 +404,6 @@ int rtcsession_add_audio(struct rtcsession *sess,
 	struct media *media;
 	struct stream *strm;
 	int err;
-	int label = (int)sess->mediac + 1;
 
 	if (!sess || !cfg || !aucodecl)
 		return EINVAL;
@@ -421,7 +420,7 @@ int rtcsession_add_audio(struct rtcsession *sess,
 
 	err = audio_alloc(&media->u.au, &sess->streaml,
 			  &sess->stream_prm, cfg,
-			  NULL, sess->sdp, label,
+			  NULL, sess->sdp, 0,
 			  sess->mnat, sess->mnats,
 			  sess->menc, sess->mencs,
 			  20, aucodecl, !sess->got_offer,
@@ -452,7 +451,6 @@ int rtcsession_add_video(struct rtcsession *sess,
 	struct media *media;
 	struct stream *strm;
 	int err;
-	int label = (int)sess->mediac + 1;
 
 	if (!sess || !cfg || !vidcodecl)
 		return EINVAL;
@@ -470,7 +468,7 @@ int rtcsession_add_video(struct rtcsession *sess,
 	err = video_alloc(&media->u.vid, &sess->streaml,
 			  &sess->stream_prm,
 			  cfg,
-			  sess->sdp, label,
+			  sess->sdp, 0,
 			  sess->mnat, sess->mnats,
 			  sess->menc, sess->mencs,
 			  NULL, vidcodecl,
