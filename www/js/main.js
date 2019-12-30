@@ -58,7 +58,7 @@ function start_call() {
   navigator.mediaDevices
     .getUserMedia({
       audio: true,
-      video: true
+      video: { width:320, height:240, framerate:15 }
     })
     .then(gotStream)
     .catch(e => {
