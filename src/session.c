@@ -67,6 +67,7 @@ static struct stream *media_get_stream(const struct media *media)
 	}
 }
 
+
 static void destructor(void *data)
 {
 	struct rtcsession *sess = data;

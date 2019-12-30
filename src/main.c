@@ -21,7 +21,7 @@
 static const char *modv[] = {
 	"ice",
 	"dtls_srtp",
-	"g711",
+	"g722",
 	"aufile",
 	"cairo",
 	"vp8"
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 
 	str_ncpy(config->audio.src_mod, "aufile",
 		 sizeof(config->audio.src_mod));
-	str_ncpy(config->audio.src_dev, "./share/sine_8000.wav",
+	str_ncpy(config->audio.src_dev, "./share/sine_16000.wav",
 		 sizeof(config->audio.src_dev));
 
 	str_ncpy(config->video.src_mod, "cairo",
