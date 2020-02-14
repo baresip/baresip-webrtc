@@ -20,6 +20,8 @@
 enum {HTTP_PORT = 9000};
 
 
+static struct stun_uri *stun_srv;
+
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
@@ -123,7 +125,7 @@ static int create_session(struct mbuf *offer)
 	err = rtcsession_create(&sess, &config, &param,
 				&laddr,
 				offer, mnat, menc,
-				"stun.l.google.com", 19302,
+				stun_srv,
 				session_gather_handler,
 				session_estab_handler,
 				session_close_handler, NULL);
@@ -239,8 +241,13 @@ static void http_req_handler(struct http_conn *conn,
 
 int demo_init(void)
 {
+	struct pl srv = PL("stun:stun.l.google.com:19302");
 	struct sa laddr;
 	int err;
+
+	err = stunuri_decode(&stun_srv, &srv);
+	if (err)
+		return err;
 
 	mnat = mnat_find(baresip_mnatl(), "ice");
 	if (!mnat) {
@@ -282,6 +289,7 @@ int demo_close(void)
 	conn_pending = mem_deref(conn_pending);
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
+	stun_srv = mem_deref(stun_srv);
 
 	return 0;
 }

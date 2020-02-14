@@ -27,7 +27,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		      const struct sa *laddr,
 		      struct mbuf *offer,
 		      const struct mnat *mnat, const struct menc *menc,
-		      const char *stun_server, uint16_t stun_port,
+		      struct stun_uri *stun_srv,
 		      rtcsession_gather_h *gatherh,
 		      rtcsession_estab_h,
 		      rtcsession_close_h *closeh, void *arg);
