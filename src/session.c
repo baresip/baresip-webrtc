@@ -44,6 +44,7 @@ struct rtcsession {
 	struct mnat_sess *mnats;
 	const struct menc *menc;
 	struct menc_sess *mencs;
+	struct media_ctx *ctx;
 	char cname[16];
 	bool got_offer;
 	rtcsession_gather_h *gatherh;
@@ -432,6 +433,8 @@ int rtcsession_add_audio(struct rtcsession *sess,
 		return err;
 	}
 
+	audio_set_media_context(media->u.au, &sess->ctx);
+
 	strm = audio_strm(media->u.au);
 
 	stream_set_session_handlers(strm, mnatconn_handler,
@@ -655,7 +658,7 @@ int rtcsession_start_video(struct rtcsession *sess, unsigned mediaix)
 			return err;
 		}
 
-		err = video_start(vid, NULL);
+		err = video_start_source(vid, &sess->ctx);
 		if (err) {
 			warning("rtcsession: start:"
 				" video_start error: %m\n", err);
