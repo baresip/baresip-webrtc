@@ -19,10 +19,6 @@ remoteVideo.addEventListener('loadedmetadata', function() {
   console.log(`Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px`);
 });
 
-remoteVideo.addEventListener('resize', () => {
-  console.log(`Remote video size changed to ${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`);
-});
-
 
 let pc1;
 let localStream;
@@ -31,7 +27,6 @@ let localStream;
 const offerOptions = {
   offerToReceiveAudio: 1,
   offerToReceiveVideo: 1,
-  voiceActivityDetection: false
 };
 
 
