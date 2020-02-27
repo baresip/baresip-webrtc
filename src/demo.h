@@ -18,12 +18,7 @@ typedef void (rtcsession_gather_h)(void *arg);
 typedef void (rtcsession_estab_h)(bool audio, unsigned mediaix, void *arg);
 typedef void (rtcsession_close_h)(int err, void *arg);
 
-struct rtcsession_param {
-	int unused;
-};
-
 int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
-		      const struct rtcsession_param *prm,
 		      const struct sa *laddr,
 		      struct mbuf *offer,
 		      const struct mnat *mnat, const struct menc *menc,

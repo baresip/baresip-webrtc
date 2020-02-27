@@ -306,7 +306,6 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 
 
 int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
-		      const struct rtcsession_param *prm,
 		      const struct sa *laddr,
 		      struct mbuf *offer,
 		      const struct mnat *mnat, const struct menc *menc,
@@ -320,7 +319,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 	size_t i;
 	int err;
 
-	if (!sessp || !cfg || !prm || !laddr)
+	if (!sessp || !cfg || !laddr)
 		return EINVAL;
 
 	if (!mnat || !menc)

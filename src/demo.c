@@ -106,9 +106,6 @@ static int create_session(struct mbuf *offer)
 {
 	struct sa laddr;
 	struct config config = *conf_config();
-	struct rtcsession_param param = {
-		.unused = 0
-	};
 	int err;
 
 	/* override default config */
@@ -122,8 +119,7 @@ static int create_session(struct mbuf *offer)
 	}
 
 	/* create a new session object, send SDP to it */
-	err = rtcsession_create(&sess, &config, &param,
-				&laddr,
+	err = rtcsession_create(&sess, &config, &laddr,
 				offer, mnat, menc,
 				stun_srv,
 				session_gather_handler,
