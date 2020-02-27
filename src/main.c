@@ -47,6 +47,7 @@ static void usage(void)
 		   "options:\n"
 		   "\t-f <path>        Config path\n"
                    "\t-h               Help\n"
+		   "\t-v               Verbose debug\n"
 		   "\n");
 }
 
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 
-		const int c = getopt(argc, argv, "hl:f:u:t");
+		const int c = getopt(argc, argv, "hl:f:u:tv");
 		if (0 > c)
 			break;
 
@@ -72,9 +73,14 @@ int main(int argc, char *argv[])
 		case 'f':
 			conf_path_set(optarg);
 			break;
+
 		case 'h':
 			usage();
 			return err;
+
+		case 'v':
+			log_enable_debug(true);
+			break;
 		}
 	}
 
