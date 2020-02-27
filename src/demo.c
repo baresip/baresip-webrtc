@@ -26,8 +26,14 @@ static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
 static struct rtcsession *sess;
-const struct mnat *mnat;
-const struct menc *menc;
+static const struct mnat *mnat;
+static const struct menc *menc;
+
+
+static struct {
+	const char *stun_user;
+	const char *stun_pass;
+} g;
 
 
 static void reply(struct http_conn *conn, struct mbuf *mb)
@@ -122,6 +128,7 @@ static int create_session(struct mbuf *offer)
 	err = rtcsession_create(&sess, &config, &laddr,
 				offer, mnat, menc,
 				stun_srv,
+				g.stun_user, g.stun_pass,
 				session_gather_handler,
 				session_estab_handler,
 				session_close_handler, NULL);
@@ -235,15 +242,23 @@ static void http_req_handler(struct http_conn *conn,
 }
 
 
-int demo_init(void)
+int demo_init(const char *ice_server,
+	      const char *stun_user, const char *stun_pass)
 {
-	struct pl srv = PL("stun:stun.l.google.com:19302");
+	struct pl srv;
 	struct sa laddr;
 	int err;
 
+	pl_set_str(&srv, ice_server);
+
 	err = stunuri_decode(&stun_srv, &srv);
-	if (err)
+	if (err) {
+		warning("demo: invalid iceserver '%r' (%m)\n", &srv, err);
 		return err;
+	}
+
+	g.stun_user = stun_user;
+	g.stun_pass = stun_pass;
 
 	mnat = mnat_find(baresip_mnatl(), "ice");
 	if (!mnat) {

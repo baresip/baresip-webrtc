@@ -23,6 +23,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		      struct mbuf *offer,
 		      const struct mnat *mnat, const struct menc *menc,
 		      struct stun_uri *stun_srv,
+		      const char *stun_user, const char *stun_pass,
 		      rtcsession_gather_h *gatherh,
 		      rtcsession_estab_h,
 		      rtcsession_close_h *closeh, void *arg);
@@ -42,5 +43,6 @@ int rtcsession_start_video(struct rtcsession *sess, unsigned mediaix);
 int load_file(struct mbuf *mb, const char *filename);
 
 
-int demo_init(void);
+int demo_init(const char *ice_server,
+	      const char *stun_user, const char *stun_pass);
 int demo_close(void);

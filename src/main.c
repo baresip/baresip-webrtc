@@ -28,6 +28,8 @@ static const char *modv[] = {
 	"fakevideo"
 };
 
+static const char *ice_server = "stun:stun.l.google.com:19302";
+
 
 static void signal_handler(int signum)
 {
@@ -48,19 +50,26 @@ static void usage(void)
 		   "\t-f <path>        Config path\n"
                    "\t-h               Help\n"
 		   "\t-v               Verbose debug\n"
-		   "\n");
+		   "\n"
+		   "ice:\n"
+		   "\t-i <server>      ICE server (%s)\n"
+		   "\t-u <username>    ICE username\n"
+		   "\t-p <password>    ICE password\n"
+		   "\n",
+		   ice_server);
 }
 
 
 int main(int argc, char *argv[])
 {
 	struct config *config;
+	const char *stun_user = NULL, *stun_pass = NULL;
 	size_t i;
 	int err = 0;
 
 	for (;;) {
 
-		const int c = getopt(argc, argv, "hl:f:u:tv");
+		const int c = getopt(argc, argv, "hl:f:i:u:tvu:p:");
 		if (0 > c)
 			break;
 
@@ -77,6 +86,18 @@ int main(int argc, char *argv[])
 		case 'h':
 			usage();
 			return err;
+
+		case 'i':
+			ice_server = optarg;
+			break;
+
+		case 'u':
+			stun_user = optarg;
+			break;
+
+		case 'p':
+			stun_pass = optarg;
+			break;
 
 		case 'v':
 			log_enable_debug(true);
@@ -133,7 +154,7 @@ int main(int argc, char *argv[])
 	str_ncpy(config->video.src_mod, "cairo",
 		 sizeof(config->video.src_mod));
 
-	err = demo_init();
+	err = demo_init(ice_server, stun_user, stun_pass);
 	if (err) {
 		re_fprintf(stderr, "failed to init demo: %m\n", err);
 		goto out;

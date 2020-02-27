@@ -103,6 +103,24 @@ static void destructor(void *data)
 	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
 		struct media *media = &sess->mediav[i];
 
+		if (!media->u.p)
+			continue;
+
+		switch (media->type) {
+
+		case MEDIA_TYPE_AUDIO:
+			debug("%H\n", audio_debug, media->u.au);
+			break;
+
+		case MEDIA_TYPE_VIDEO:
+			debug("%H\n", video_debug, media->u.vid);
+			break;
+		}
+	}
+
+	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
+		struct media *media = &sess->mediav[i];
+
 		switch (media->type) {
 
 		case MEDIA_TYPE_AUDIO:
@@ -310,6 +328,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 		      struct mbuf *offer,
 		      const struct mnat *mnat, const struct menc *menc,
 		      struct stun_uri *stun_srv,
+		      const char *stun_user, const char *stun_pass,
 		      rtcsession_gather_h *gatherh,
 		      rtcsession_estab_h *estabh,
 		      rtcsession_close_h *closeh, void *arg)
@@ -357,7 +376,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 				  net_dnsc(baresip_network()),
 				  sa_af(laddr),
 				  stun_srv,
-				  NULL, NULL,
+				  stun_user, stun_pass,
 				  sess->sdp, !got_offer,
 				  mnat_estab_handler, sess);
 		if (err) {
