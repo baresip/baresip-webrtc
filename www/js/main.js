@@ -38,9 +38,17 @@ function start_call() {
 
   console.log('Starting call');
 
-  const servers = null;
+  const configuration = {
+    'iceServers': [
+      {
+        'url': 'stun:stun.l.google.com:19302'
+      }
+    ],
+  };
 
-  pc1 = new RTCPeerConnection(servers);
+  console.log('configuration: ', configuration);
+
+  pc1 = new RTCPeerConnection(configuration);
   console.log('Created local peer connection object pc1');
   pc1.onicecandidate = e => onIceCandidate(pc1, e);
   pc1.ontrack = gotRemoteStream;
