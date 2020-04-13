@@ -625,7 +625,7 @@ int rtcsession_start_audio(struct rtcsession *sess, unsigned mediaix)
 			return err;
 		}
 
-		err = audio_start(au);
+		err = audio_start_source(au, baresip_aufiltl());
 		if (err) {
 			warning("rtcsession: start:"
 				" audio_start error: %m\n", err);
