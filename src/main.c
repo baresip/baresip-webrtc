@@ -21,11 +21,13 @@
 static const char *modv[] = {
 	"ice",
 	"dtls_srtp",
+	"opus",
 	"g722",
 	"aufile",
 	"cairo",
 	"vp8",
-	"fakevideo"
+	"fakevideo",
+	"avformat"
 };
 
 static const char *ice_server = "stun:stun.l.google.com:19302";
@@ -146,13 +148,15 @@ int main(int argc, char *argv[])
 
 	config = conf_config();
 
-	str_ncpy(config->audio.src_mod, "aufile",
+	str_ncpy(config->audio.src_mod, "avformat",
 		 sizeof(config->audio.src_mod));
-	str_ncpy(config->audio.src_dev, "./share/sine_16000.wav",
+	str_ncpy(config->audio.src_dev, "lavfi,sine",
 		 sizeof(config->audio.src_dev));
 
 	str_ncpy(config->video.src_mod, "cairo",
 		 sizeof(config->video.src_mod));
+	str_ncpy(config->video.src_dev, "nil",
+		 sizeof(config->video.src_dev));
 
 	err = demo_init(ice_server, stun_user, stun_pass);
 	if (err) {
