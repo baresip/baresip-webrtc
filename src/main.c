@@ -90,7 +90,10 @@ int main(int argc, char *argv[])
 			return err;
 
 		case 'i':
-			ice_server = optarg;
+			if (0 == str_casecmp(optarg, "null"))
+				ice_server = NULL;
+			else
+				ice_server = optarg;
 			break;
 
 		case 'u':

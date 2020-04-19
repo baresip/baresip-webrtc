@@ -249,12 +249,15 @@ int demo_init(const char *ice_server,
 	struct sa laddr;
 	int err;
 
-	pl_set_str(&srv, ice_server);
+	if (ice_server) {
+		pl_set_str(&srv, ice_server);
 
-	err = stunuri_decode(&stun_srv, &srv);
-	if (err) {
-		warning("demo: invalid iceserver '%r' (%m)\n", &srv, err);
-		return err;
+		err = stunuri_decode(&stun_srv, &srv);
+		if (err) {
+			warning("demo: invalid iceserver '%r' (%m)\n",
+				&srv, err);
+			return err;
+		}
 	}
 
 	g.stun_user = stun_user;
