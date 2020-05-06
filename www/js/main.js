@@ -44,6 +44,7 @@ function start_call() {
         'url': 'stun:stun.l.google.com:19302'
       }
     ],
+    iceTransportPolicy: 'all'
   };
 
   console.log('configuration: ', configuration);
