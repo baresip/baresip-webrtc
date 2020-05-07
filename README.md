@@ -29,3 +29,24 @@ demo: listening on 0.0.0.0:9000
 
 `http://localhost:9000/`
 
+
+## Protocol Diagram
+
+This diagram shows how a WebRTC capable browser can connect to baresip-webrtc.
+Baresip-WebRTC has a small embedded HTTP(S) Server for serving JavaScript files
+and for signaling.
+
+The media stream is compatible with WebRTC, using ICE and DTLS/SRTP as
+media transport. The audio codecs are Opus, G722 or G711. The video codecs
+are VP8, H264.
+
+```
+                  (Signaling)
+.----------.       SDP/HTTP       .-----------.
+| Browser  |<-------------------->|  Baresip  |
+| (Chrome) |                      |  WebRTC   |<==== A/V Backend
+|          |<====================>|           |
+'----------'    ICE/DTLS/SRTP     '-----------'
+                (Audio,Video)
+```                
+                
