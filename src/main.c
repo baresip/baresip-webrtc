@@ -161,6 +161,8 @@ int main(int argc, char *argv[])
 	str_ncpy(config->video.src_dev, "nil",
 		 sizeof(config->video.src_dev));
 
+	config->video.bitrate = 2000000;
+
 	err = demo_init(ice_server, stun_user, stun_pass);
 	if (err) {
 		re_fprintf(stderr, "failed to init demo: %m\n", err);
