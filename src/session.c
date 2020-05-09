@@ -518,6 +518,7 @@ int rtcsession_add_video(struct rtcsession *sess,
 int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer)
 {
 	struct le *le;
+	size_t i;
 	int err;
 
 	if (!sess || !offer)
@@ -529,6 +530,24 @@ int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer)
 	if (err) {
 		warning("rtcsession: sdp decode failed (%m)\n", err);
 		return err;
+	}
+
+	/* must be done after sdp_decode() */
+	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
+		struct media *media = &sess->mediav[i];
+
+		if (!media->u.p)
+			continue;
+
+		switch (media->type) {
+
+		case MEDIA_TYPE_VIDEO:
+			video_sdp_attr_decode(media->u.vid);
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	/* must be done after sdp_decode() */
