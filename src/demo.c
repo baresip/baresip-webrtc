@@ -114,9 +114,6 @@ static int create_session(struct mbuf *offer)
 	struct config config = *conf_config();
 	int err;
 
-	/* override default config */
-	config.avt.rtcp_mux = true;
-
 	sa_set_str(&laddr, "127.0.0.1", 0);
 
 	if (sess) {

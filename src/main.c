@@ -165,6 +165,10 @@ int main(int argc, char *argv[])
 		 sizeof(config->video.src_dev));
 
 	config->video.bitrate = 2000000;
+	config->video.fps = 30.0;
+
+	/* override default config */
+	config->avt.rtcp_mux = true;
 
 	err = demo_init(ice_server, stun_user, stun_pass);
 	if (err) {
