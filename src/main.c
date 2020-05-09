@@ -18,6 +18,9 @@
 #include <re_dbg.h>
 
 
+static const char *modpath = "/usr/local/lib/baresip/modules";
+
+
 static const char *modv[] = {
 	"ice",
 	"dtls_srtp",
@@ -141,7 +144,7 @@ int main(int argc, char *argv[])
 
 	for (i=0; i<ARRAY_SIZE(modv); i++) {
 
-		err = module_load(modv[i]);
+		err = module_load(modpath, modv[i]);
 		if (err) {
 			re_fprintf(stderr,
 				   "could not pre-load module"
