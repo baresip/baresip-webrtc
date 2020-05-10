@@ -35,6 +35,12 @@ static const char *modv[] = {
 
 static const char *ice_server = "stun:stun.l.google.com:19302";
 
+static const char *modconfig =
+	"opus_bitrate       96000\n"
+	"opus_stereo        yes\n"
+	"opus_sprop_stereo  yes\n"
+	;
+
 
 static void signal_handler(int signum)
 {
@@ -52,7 +58,6 @@ static void usage(void)
 		   "Usage: baresip-webrtc [options]\n"
 		   "\n"
 		   "options:\n"
-		   "\t-f <path>        Config path\n"
                    "\t-h               Help\n"
 		   "\t-v               Verbose debug\n"
 		   "\n"
@@ -74,7 +79,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 
-		const int c = getopt(argc, argv, "hl:f:i:u:tvu:p:");
+		const int c = getopt(argc, argv, "hl:i:u:tvu:p:");
 		if (0 > c)
 			break;
 
@@ -84,9 +89,6 @@ int main(int argc, char *argv[])
 		default:
 			err = EINVAL;
 			/*@fallthrough@*/
-		case 'f':
-			conf_path_set(optarg);
-			break;
 
 		case 'h':
 			usage();
@@ -126,7 +128,7 @@ int main(int argc, char *argv[])
 
 	(void)sys_coredump_set(true);
 
-	err = conf_configure();
+	err = conf_configure_buf((uint8_t *)modconfig, str_len(modconfig));
 	if (err) {
 		warning("main: configure failed: %m\n", err);
 		goto out;
