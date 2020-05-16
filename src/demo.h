@@ -12,10 +12,11 @@
  */
 
 struct stream;
+struct media;
 struct rtcsession;
 
 typedef void (rtcsession_gather_h)(void *arg);
-typedef void (rtcsession_estab_h)(bool audio, unsigned mediaix, void *arg);
+typedef void (rtcsession_estab_h)(bool audio, struct media *media, void *arg);
 typedef void (rtcsession_close_h)(int err, void *arg);
 
 int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
@@ -36,8 +37,8 @@ int rtcsession_add_video(struct rtcsession *sess,
 int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer);
 int rtcsession_encode_answer(struct rtcsession *sess, struct mbuf **mb);
 int rtcsession_start_ice(struct rtcsession *sess);
-int rtcsession_start_audio(struct rtcsession *sess, unsigned mediaix);
-int rtcsession_start_video(struct rtcsession *sess, unsigned mediaix);
+int rtcsession_start_audio(struct rtcsession *sess, struct media *media);
+int rtcsession_start_video(struct rtcsession *sess, struct media *media);
 
 
 int load_file(struct mbuf *mb, const char *filename);

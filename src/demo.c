@@ -73,23 +73,23 @@ static void session_gather_handler(void *arg)
 }
 
 
-static void session_estab_handler(bool audio, unsigned mediaix, void *arg)
+static void session_estab_handler(bool audio, struct media *media, void *arg)
 {
 	int err;
 
 	(void)arg;
 
-	info("demo: stream established: '%s' index=%u\n",
-	     audio ? "audio" : "video", mediaix);
+	info("demo: stream established: '%s'\n",
+	     audio ? "audio" : "video");
 
 	if (audio) {
-		err = rtcsession_start_audio(sess, mediaix);
+		err = rtcsession_start_audio(sess, media);
 		if (err) {
 			warning("demo: could not start audio (%m)\n", err);
 		}
 	}
 	else {
-		err = rtcsession_start_video(sess, mediaix);
+		err = rtcsession_start_video(sess, media);
 		if (err) {
 			warning("demo: could not start video (%m)\n", err);
 		}

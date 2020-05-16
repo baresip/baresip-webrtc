@@ -18,6 +18,7 @@ enum media_type {
 
 /* one-to-one mapping with stream */
 struct media {
+	struct le le;
 	enum media_type type;
 	union {
 		struct audio *au;
@@ -26,7 +27,6 @@ struct media {
 	} u;
 
 	struct rtcsession *sess;  /* parent */
-	unsigned ix;
 	bool ice_conn;
 	bool dtls_ok;
 	bool rtp;
@@ -37,9 +37,8 @@ struct media {
 struct rtcsession {
 	struct stream_param stream_prm;
 	struct list streaml;
+	struct list medial;
 	struct sdp_session *sdp;
-	struct media mediav[4];
-	size_t mediac;
 	const struct mnat *mnat;
 	struct mnat_sess *mnats;
 	const struct menc *menc;
@@ -72,6 +71,7 @@ static struct stream *media_get_stream(const struct media *media)
 static void destructor(void *data)
 {
 	struct rtcsession *sess = data;
+	struct le *le;
 	size_t i;
 
 	info("rtcsession: destroyed\n");
@@ -83,25 +83,28 @@ static void destructor(void *data)
 	info(".. sdp:      %d\n", sess->sdp_ok);
 	info("\n");
 
-	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
-		struct media *media = &sess->mediav[i];
+	i=0;
+	for (le = sess->medial.head; le; le = le->next) {
+		struct media *media = le->data;
 
 		if (!media->u.p)
 			continue;
 
-		info(".. #%u '%s'\n",
-		     media->ix, stream_name(media_get_stream(media)));
+		info(".. #%zu '%s'\n",
+		     i, stream_name(media_get_stream(media)));
 		info(".. ice_conn: %d\n", media->ice_conn);
 		info(".. dtls:     %d\n", media->dtls_ok);
 		info(".. rtp:      %d\n", media->rtp);
 		info(".. rtcp:     %d\n", media->rtcp);
 		info("\n");
+
+		++i;
 	}
 
 	info("\n");
 
-	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
-		struct media *media = &sess->mediav[i];
+	for (le = sess->medial.head; le; le = le->next) {
+		struct media *media = le->data;
 
 		if (!media->u.p)
 			continue;
@@ -118,8 +121,11 @@ static void destructor(void *data)
 		}
 	}
 
-	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
-		struct media *media = &sess->mediav[i];
+	le = sess->medial.head;
+	while (le) {
+		struct media *media = le->data;
+
+		le = le->next;
 
 		switch (media->type) {
 
@@ -133,6 +139,7 @@ static void destructor(void *data)
 		}
 
 		mem_deref(media->u.p);
+		mem_deref(media);
 	}
 
 	mem_deref(sess->sdp);
@@ -141,14 +148,37 @@ static void destructor(void *data)
 }
 
 
+static void media_destructor(void *data)
+{
+	struct media *media = data;
+
+	list_unlink(&media->le);
+}
+
+
+static struct media *media_add(struct rtcsession *sess,
+			       enum media_type type)
+{
+	struct media *media;
+
+	media = mem_zalloc(sizeof(*media), media_destructor);
+
+	media->type = type;
+	media->sess = sess;
+
+	list_append(&sess->medial, &media->le, media);
+
+	return media;
+}
+
+
 static struct media *lookup_media(struct rtcsession *sess,
 				  struct stream *strm)
 {
-	size_t i;
+	struct le *le;
 
-	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
-
-		struct media *media = &sess->mediav[i];
+	for (le = sess->medial.head; le; le = le->next) {
+		struct media *media = le->data;
 
 		if (strm == media_get_stream(media))
 			return media;
@@ -232,8 +262,8 @@ static void menc_event_handler(enum menc_event event,
 
 	media = lookup_media(sess, strm);
 
-	info("rtcsession: mediaenc event '%s' (%s) ix=%u\n",
-	     menc_event_name(event), prm, media->ix);
+	info("rtcsession: mediaenc event '%s' (%s)\n",
+	     menc_event_name(event), prm);
 
 	switch (event) {
 
@@ -246,13 +276,13 @@ static void menc_event_handler(enum menc_event event,
 		if (strstr(prm, "audio")) {
 
 			if (sess->estabh)
-				sess->estabh(true, media->ix, sess->arg);
+				sess->estabh(true, media, sess->arg);
 		}
 		else if (strstr(prm, "video")) {
 
 
 			if (sess->estabh)
-				sess->estabh(false, media->ix, sess->arg);
+				sess->estabh(false, media, sess->arg);
 		}
 		else {
 			info("rtcsession: mediaenc: no match for stream"
@@ -335,7 +365,6 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 {
 	struct rtcsession *sess;
 	bool got_offer = offer != NULL;
-	size_t i;
 	int err;
 
 	if (!sessp || !cfg || !laddr)
@@ -349,11 +378,6 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 	sess = mem_zalloc(sizeof(*sess), destructor);
 	if (!sess)
 		return ENOMEM;
-
-	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
-
-		sess->mediav[i].sess = sess;
-	}
 
 	/* RFC 7022 */
 	rand_str(sess->cname, sizeof(sess->cname));
@@ -428,15 +452,9 @@ int rtcsession_add_audio(struct rtcsession *sess,
 	if (!sess || !cfg || !aucodecl)
 		return EINVAL;
 
-	if (sess->mediac >= ARRAY_SIZE(sess->mediav))
-		return EOVERFLOW;
+	info("rtcsession: add audio (codecs=%u)\n", list_count(aucodecl));
 
-	info("rtcsession: add audio (ix=%u)\n", sess->mediac);
-
-	media = &sess->mediav[sess->mediac];
-
-	media->type = MEDIA_TYPE_AUDIO;
-	media->ix = (unsigned)sess->mediac;
+	media = media_add(sess, MEDIA_TYPE_AUDIO);
 
 	err = audio_alloc(&media->u.au, &sess->streaml,
 			  &sess->stream_prm, cfg,
@@ -460,8 +478,6 @@ int rtcsession_add_audio(struct rtcsession *sess,
 				    rtcp_handler,
 				    stream_error_handler, media);
 
-	++sess->mediac;
-
 	return 0;
 }
 
@@ -477,15 +493,9 @@ int rtcsession_add_video(struct rtcsession *sess,
 	if (!sess || !cfg || !vidcodecl)
 		return EINVAL;
 
-	if (sess->mediac >= ARRAY_SIZE(sess->mediav))
-		return EOVERFLOW;
+	info("rtcsession: add video (codecs=%u)\n", list_count(vidcodecl));
 
-	info("rtcsession: add video (ix=%u)\n", sess->mediac);
-
-	media = &sess->mediav[sess->mediac];
-
-	media->type = MEDIA_TYPE_VIDEO;
-	media->ix = (unsigned)sess->mediac;
+	media = media_add(sess, MEDIA_TYPE_VIDEO);
 
 	err = video_alloc(&media->u.vid, &sess->streaml,
 			  &sess->stream_prm,
@@ -509,8 +519,6 @@ int rtcsession_add_video(struct rtcsession *sess,
 				    rtcp_handler,
 				    stream_error_handler, media);
 
-	++sess->mediac;
-
 	return 0;
 }
 
@@ -518,7 +526,6 @@ int rtcsession_add_video(struct rtcsession *sess,
 int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer)
 {
 	struct le *le;
-	size_t i;
 	int err;
 
 	if (!sess || !offer)
@@ -533,8 +540,8 @@ int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer)
 	}
 
 	/* must be done after sdp_decode() */
-	for (i=0; i<ARRAY_SIZE(sess->mediav); i++) {
-		struct media *media = &sess->mediav[i];
+	for (le = sess->medial.head; le; le = le->next) {
+		struct media *media = le->data;
 
 		if (!media->u.p)
 			continue;
@@ -609,20 +616,15 @@ int rtcsession_start_ice(struct rtcsession *sess)
 }
 
 
-int rtcsession_start_audio(struct rtcsession *sess, unsigned mediaix)
+int rtcsession_start_audio(struct rtcsession *sess, struct media *media)
 {
 	const struct sdp_format *sc;
 	struct audio *au;
-	struct media *media;
 	int err = 0;
 
 	if (!sess)
 		return EINVAL;
 
-	if (mediaix >= ARRAY_SIZE(sess->mediav))
-		return ENOENT;
-
-	media = &sess->mediav[mediaix];
 	au = media->u.au;
 
 	if (!media->ice_conn || !media->dtls_ok) {
@@ -630,7 +632,7 @@ int rtcsession_start_audio(struct rtcsession *sess, unsigned mediaix)
 		return EPROTO;
 	}
 
-	info("rtcsession: start audio (ix=%u)\n", mediaix);
+	info("rtcsession: start audio\n");
 
 	/* Audio Stream */
 	sc = sdp_media_rformat(stream_sdpmedia(audio_strm(au)), NULL);
@@ -660,25 +662,19 @@ int rtcsession_start_audio(struct rtcsession *sess, unsigned mediaix)
 }
 
 
-int rtcsession_start_video(struct rtcsession *sess, unsigned mediaix)
+int rtcsession_start_video(struct rtcsession *sess, struct media *media)
 {
 	const struct sdp_format *sc;
 	struct video *vid;
-	struct media *media;
 	int err = 0;
 
 	if (!sess)
 		return EINVAL;
 
-	if (mediaix >= ARRAY_SIZE(sess->mediav))
-		return ENOENT;
-
-	media = &sess->mediav[mediaix];
 	vid = media->u.vid;
 
 	if (!media->ice_conn || !media->dtls_ok) {
-		warning("rtcsession: start_video: ice or dtls not ready"
-			" (ix=%u)\n", mediaix);
+		warning("rtcsession: start_video: ice or dtls not ready\n");
 		return EPROTO;
 	}
 
