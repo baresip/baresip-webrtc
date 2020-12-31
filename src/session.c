@@ -134,7 +134,7 @@ static void destructor(void *data)
 			break;
 
 		case MEDIA_TYPE_VIDEO:
-			video_stop(media->u.vid);
+			video_stop(media->u.vid, NULL);
 			break;
 		}
 
