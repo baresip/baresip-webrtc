@@ -203,6 +203,7 @@ static void audio_event_handler(int key, bool end, void *arg)
 {
 	struct rtcsession *sess = arg;
 	(void)sess;
+	(void)end;
 
 	info("rtcsession: recv DTMF event: key=%d ('%c')\n", key, key);
 }
@@ -337,6 +338,8 @@ static void rtcp_handler(struct stream *strm,
 			 struct rtcp_msg *msg, void *arg)
 {
 	struct media *media = arg;
+	(void)strm;
+	(void)msg;
 
 	media->rtcp = true;
 }
