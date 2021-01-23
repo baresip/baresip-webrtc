@@ -53,6 +53,7 @@ static void session_gather_handler(void *arg)
 {
 	struct mbuf *mb_answer = NULL;
 	int err;
+	(void)arg;
 
 	info("demo: session gathered.\n");
 
@@ -111,7 +112,7 @@ static void session_close_handler(int err, void *arg)
 static int create_session(struct mbuf *offer)
 {
 	struct sa laddr;
-	struct config config = *conf_config();
+	const struct config *config = conf_config();
 	int err;
 
 	sa_set_str(&laddr, "127.0.0.1", 0);
@@ -122,7 +123,7 @@ static int create_session(struct mbuf *offer)
 	}
 
 	/* create a new session object, send SDP to it */
-	err = rtcsession_create(&sess, &config, &laddr,
+	err = rtcsession_create(&sess, config, &laddr,
 				offer, mnat, menc,
 				stun_srv,
 				g.stun_user, g.stun_pass,
@@ -134,13 +135,13 @@ static int create_session(struct mbuf *offer)
 		goto out;
 	}
 
-	err = rtcsession_add_audio(sess, &config, baresip_aucodecl());
+	err = rtcsession_add_audio(sess, config, baresip_aucodecl());
 	if (err) {
 		warning("demo: add_audio failed (%m)\n", err);
 		goto out;
 	}
 
-	err = rtcsession_add_video(sess, &config, baresip_vidcodecl());
+	err = rtcsession_add_video(sess, config, baresip_vidcodecl());
 	if (err) {
 		warning("demo: add_video failed (%m)\n", err);
 		goto out;
