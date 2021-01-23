@@ -1,7 +1,7 @@
 /**
  * @file util.c  Baresip WebRTC demo -- utility functions
  *
- * Copyright (C) 2010 Creytiv.com
+ * Copyright (C) 2010 Alfred E. Heggestad
  */
 
 #include <sys/types.h>

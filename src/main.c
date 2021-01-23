@@ -1,7 +1,7 @@
 /**
  * @file main.c Main application code
  *
- * Copyright (C) 2010 Creytiv.com
+ * Copyright (C) 2010 Alfred E. Heggestad
  */
 
 #include <string.h>
