@@ -4,6 +4,7 @@
  * Copyright (C) 2010 Alfred E. Heggestad
  */
 
+#include <string.h>
 #include <re.h>
 #include <baresip.h>
 #include "demo.h"
@@ -18,6 +19,16 @@
  */
 
 enum {HTTP_PORT = 9000};
+enum {SD_HASH_SIZE = 4};
+
+
+/*
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
+ */
+struct session_description {
+	char type[32];     /* offer, answer */
+	struct mbuf *sdp;
+};
 
 
 static struct stun_uri *stun_srv;
@@ -36,16 +47,97 @@ static struct {
 } g;
 
 
-static void reply(struct http_conn *conn, struct mbuf *mb)
+static void reply_fmt(struct http_conn *conn, const char *ctype,
+		      const char *fmt, ...)
 {
+	char *buf = NULL;
+	va_list ap;
+	int err;
+
+	va_start(ap, fmt);
+	err = re_vsdprintf(&buf, fmt, ap);
+	va_end(ap);
+
+	if (err)
+		return;
+
+	info("demo: reply: %s\n", ctype);
+
 	http_reply(conn, 200, "OK",
-		   "Content-Type: text/plain;charset=UTF-8\r\n"
+		   "Content-Type: %s\r\n"
 		   "Content-Length: %zu\r\n"
 		   "Access-Control-Allow-Origin: *\r\n"
 		   "\r\n"
-		   "%b",
-		   mb->end,
-		   mb->buf, mb->end);
+		   "%s",
+		   ctype, str_len(buf), buf);
+
+	mem_deref(buf);
+}
+
+
+static int session_description_encode(struct odict **odp,
+				      const char *type, struct mbuf *sdp)
+{
+	struct odict *od;
+	char *str = NULL;
+	int err;
+
+	info("demo: session_description: encode: type='%s'\n", type);
+
+	err = mbuf_strdup(sdp, &str, sdp->end);
+	if (err)
+		goto out;
+
+	err = odict_alloc(&od, SD_HASH_SIZE);
+	if (err)
+		goto out;
+
+	err |= odict_entry_add(od, "type", ODICT_STRING, type);
+	err |= odict_entry_add(od, "sdp", ODICT_STRING, str);
+	if (err)
+		goto out;
+
+ out:
+	mem_deref(str);
+	if (err)
+		mem_deref(od);
+	else
+		*odp = od;
+
+	return err;
+}
+
+
+/*
+ * format:
+ *
+ * {
+ *   "type" : "answer",
+ *   "sdp" : "v=0\r\ns=-\r\n..."
+ * }
+ *
+ * specification:
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
+ *
+ * NOTE: currentLocalDescription
+ */
+static int reply_answer(struct mbuf *mb_answer)
+{
+	struct odict *od = NULL;
+	int err;
+
+	err = session_description_encode(&od, "answer", mb_answer);
+	if (err)
+		goto out;
+
+	reply_fmt(conn_pending, "application/json",
+		  "%H", json_encode_odict, od);
+
+ out:
+	mem_deref(od);
+
+	return err;
 }
 
 
@@ -61,7 +153,9 @@ static void session_gather_handler(void *arg)
 	if (err)
 		goto out;
 
-	reply(conn_pending, mb_answer);
+	err = reply_answer(mb_answer);
+	if (err)
+		goto out;
 
 	err = rtcsession_start_ice(sess);
 	if (err) {
@@ -109,6 +203,7 @@ static void session_close_handler(int err, void *arg)
 }
 
 
+/* RemoteDescription */
 static int create_session(struct mbuf *offer)
 {
 	struct sa laddr;
@@ -161,6 +256,98 @@ static int create_session(struct mbuf *offer)
 }
 
 
+static int session_description_decode(struct session_description *sd,
+				      struct mbuf *mb)
+{
+	const char *type, *sdp;
+	struct odict *od;
+	enum {MAX_DEPTH = 2};
+	int err;
+
+	memset(sd, 0, sizeof(*sd));
+
+	err = json_decode_odict(&od, SD_HASH_SIZE, (char *)mbuf_buf(mb),
+				mbuf_get_left(mb), MAX_DEPTH);
+	if (err) {
+		warning("sd: could not decode json (%m)\n", err);
+		return err;
+	}
+
+	type = odict_string(od, "type");
+	sdp  = odict_string(od, "sdp");
+	if (!type || !sdp) {
+		warning("sd: missing json fields\n");
+		err = EPROTO;
+		goto out;
+	}
+
+	str_ncpy(sd->type, type, sizeof(sd->type));
+
+	sd->sdp = mbuf_alloc(512);
+	if (!sd->sdp) {
+		err = ENOMEM;
+		goto out;
+	}
+
+	mbuf_write_str(sd->sdp, sdp);
+	sd->sdp->pos = 0;
+
+	info("demo: session_description decode: type='%s'\n", sd->type);
+
+ out:
+	mem_deref(od);
+
+	return err;
+}
+
+
+static void session_description_reset(struct session_description *sd)
+{
+	sd->sdp = mem_deref(sd->sdp);
+}
+
+
+static int handle_post_call(const struct http_msg *msg)
+{
+	struct session_description sd = {"",NULL};
+	int err;
+
+	info("demo: handle POST call: content is '%r/%r'\n",
+	     &msg->ctyp.type, &msg->ctyp.subtype);
+
+	if (msg_ctype_cmp(&msg->ctyp, "application", "json")) {
+
+		err = session_description_decode(&sd, msg->mb);
+		if (err)
+			goto out;
+
+		if (0 == str_casecmp(sd.type, "offer")) {
+
+			err = create_session(sd.sdp);
+			if (err)
+				goto out;
+		}
+		else {
+			warning("invalid session description type: %s\n",
+				sd.type);
+			err = EPROTO;
+			goto out;
+		}
+	}
+	else {
+		warning("unknown content-type: %r/%r\n",
+			&msg->ctyp.type, &msg->ctyp.subtype);
+		err = EPROTO;
+		goto out;
+	}
+
+out:
+	session_description_reset(&sd);
+
+	return err;
+}
+
+
 static void http_req_handler(struct http_conn *conn,
 			     const struct http_msg *msg, void *arg)
 {
@@ -207,7 +394,7 @@ static void http_req_handler(struct http_conn *conn,
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/call")) {
 
-		err = create_session(msg->mb);
+		err = handle_post_call(msg);
 		if (err)
 			goto out;
 
