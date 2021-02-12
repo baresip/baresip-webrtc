@@ -4,7 +4,8 @@
 # Copyright (C) 2010 Alfred E. Heggestad
 #
 
+SRCS	+= demo.c
+SRCS	+= descr.c
 SRCS	+= main.c
 SRCS	+= session.c
-SRCS	+= demo.c
 SRCS	+= util.c

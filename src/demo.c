@@ -19,16 +19,6 @@
  */
 
 enum {HTTP_PORT = 9000};
-enum {SD_HASH_SIZE = 4};
-
-
-/*
- * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
- */
-struct session_description {
-	char type[32];     /* offer, answer */
-	struct mbuf *sdp;
-};
 
 
 static struct stun_uri *stun_srv;
@@ -72,39 +62,6 @@ static void reply_fmt(struct http_conn *conn, const char *ctype,
 		   ctype, str_len(buf), buf);
 
 	mem_deref(buf);
-}
-
-
-static int session_description_encode(struct odict **odp,
-				      const char *type, struct mbuf *sdp)
-{
-	struct odict *od;
-	char *str = NULL;
-	int err;
-
-	info("demo: session_description: encode: type='%s'\n", type);
-
-	err = mbuf_strdup(sdp, &str, sdp->end);
-	if (err)
-		goto out;
-
-	err = odict_alloc(&od, SD_HASH_SIZE);
-	if (err)
-		goto out;
-
-	err |= odict_entry_add(od, "type", ODICT_STRING, type);
-	err |= odict_entry_add(od, "sdp", ODICT_STRING, str);
-	if (err)
-		goto out;
-
- out:
-	mem_deref(str);
-	if (err)
-		mem_deref(od);
-	else
-		*odp = od;
-
-	return err;
 }
 
 
@@ -253,57 +210,6 @@ static int create_session(struct mbuf *offer)
 		sess = mem_deref(sess);
 
 	return err;
-}
-
-
-static int session_description_decode(struct session_description *sd,
-				      struct mbuf *mb)
-{
-	const char *type, *sdp;
-	struct odict *od;
-	enum {MAX_DEPTH = 2};
-	int err;
-
-	memset(sd, 0, sizeof(*sd));
-
-	err = json_decode_odict(&od, SD_HASH_SIZE, (char *)mbuf_buf(mb),
-				mbuf_get_left(mb), MAX_DEPTH);
-	if (err) {
-		warning("sd: could not decode json (%m)\n", err);
-		return err;
-	}
-
-	type = odict_string(od, "type");
-	sdp  = odict_string(od, "sdp");
-	if (!type || !sdp) {
-		warning("sd: missing json fields\n");
-		err = EPROTO;
-		goto out;
-	}
-
-	str_ncpy(sd->type, type, sizeof(sd->type));
-
-	sd->sdp = mbuf_alloc(512);
-	if (!sd->sdp) {
-		err = ENOMEM;
-		goto out;
-	}
-
-	mbuf_write_str(sd->sdp, sdp);
-	sd->sdp->pos = 0;
-
-	info("demo: session_description decode: type='%s'\n", sd->type);
-
- out:
-	mem_deref(od);
-
-	return err;
-}
-
-
-static void session_description_reset(struct session_description *sd)
-{
-	sd->sdp = mem_deref(sd->sdp);
 }
 
 

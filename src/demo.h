@@ -47,3 +47,29 @@ int load_file(struct mbuf *mb, const char *filename);
 int demo_init(const char *ice_server,
 	      const char *stun_user, const char *stun_pass);
 int demo_close(void);
+
+
+/*
+ * Session Description
+ */
+
+/*
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
+ *
+ * format:
+ *
+ * {
+ *   "type" : "answer",
+ *   "sdp" : "v=0\r\ns=-\r\n..."
+ * }
+ */
+struct session_description {
+	char type[32];     /* offer, answer, ... */
+	struct mbuf *sdp;
+};
+
+int session_description_encode(struct odict **odp,
+			       const char *type, struct mbuf *sdp);
+int session_description_decode(struct session_description *sd,
+			       struct mbuf *mb);
+void session_description_reset(struct session_description *sd);
