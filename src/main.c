@@ -30,7 +30,8 @@ static const char *modv[] = {
 	"cairo",
 	"vp8",
 	"fakevideo",
-	"avformat"
+	"avformat",
+	"ausine"
 };
 
 static const char *ice_server = "stun:stun.l.google.com:19302";
@@ -156,14 +157,14 @@ int main(int argc, char *argv[])
 
 	config = conf_config();
 
-	str_ncpy(config->audio.src_mod, "avformat",
+	str_ncpy(config->audio.src_mod, "ausine",
 		 sizeof(config->audio.src_mod));
-	str_ncpy(config->audio.src_dev, "lavfi,sine",
+	str_ncpy(config->audio.src_dev, "440",
 		 sizeof(config->audio.src_dev));
 
-	str_ncpy(config->video.src_mod, "cairo",
+	str_ncpy(config->video.src_mod, "avformat",
 		 sizeof(config->video.src_mod));
-	str_ncpy(config->video.src_dev, "nil",
+	str_ncpy(config->video.src_dev, "lavfi,testsrc2",
 		 sizeof(config->video.src_dev));
 
 	config->video.bitrate = 2000000;
