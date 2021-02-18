@@ -16,6 +16,7 @@
   ok - add support for video
      - add support for multiple sessions
      - convert HTTP content to JSON?
+     - add RTCPeerConnection.signalingState ?
  */
 
 enum {HTTP_PORT = 9000};
@@ -79,12 +80,12 @@ static void reply_fmt(struct http_conn *conn, const char *ctype,
  *
  * NOTE: currentLocalDescription
  */
-static int reply_answer(struct mbuf *mb_answer)
+static int reply_descr(const char *type, struct mbuf *mb_sdp)
 {
 	struct odict *od = NULL;
 	int err;
 
-	err = session_description_encode(&od, "answer", mb_answer);
+	err = session_description_encode(&od, type, mb_sdp);
 	if (err)
 		goto out;
 
@@ -100,28 +101,36 @@ static int reply_answer(struct mbuf *mb_answer)
 
 static void session_gather_handler(void *arg)
 {
-	struct mbuf *mb_answer = NULL;
+	struct mbuf *mb_sdp = NULL;
+	const char *type;
+	bool send_offer;
 	int err;
 	(void)arg;
 
-	info("demo: session gathered.\n");
+	send_offer = !rtcsession_got_offer(sess);
+	type = send_offer ? "offer" : "answer";
 
-	err = rtcsession_encode_answer(sess, &mb_answer);
+	info("demo: session gathered -- send %s\n", type);
+
+	err = rtcsession_encode_descr(sess, &mb_sdp, send_offer);
 	if (err)
 		goto out;
 
-	err = reply_answer(mb_answer);
+	err = reply_descr(type, mb_sdp);
 	if (err)
 		goto out;
 
-	err = rtcsession_start_ice(sess);
-	if (err) {
-		warning("demo: failed to start ice (%m)\n", err);
-		goto out;
+	if (!send_offer) {
+
+		err = rtcsession_start_ice(sess);
+		if (err) {
+			warning("demo: failed to start ice (%m)\n", err);
+			goto out;
+		}
 	}
 
  out:
-	mem_deref(mb_answer);
+	mem_deref(mb_sdp);
 }
 
 
@@ -167,6 +176,8 @@ static int create_session(struct mbuf *offer)
 	const struct config *config = conf_config();
 	int err;
 
+	info("demo: create session (offer=%s)\n", offer ? "yes" : "no");
+
 	sa_set_str(&laddr, "127.0.0.1", 0);
 
 	if (sess) {
@@ -199,10 +210,12 @@ static int create_session(struct mbuf *offer)
 		goto out;
 	}
 
-	err = rtcsession_decode_offer(sess, offer);
-	if (err) {
-		warning("demo: decode offer failed (%m)\n", err);
-		goto out;
+	if (offer) {
+		err = rtcsession_decode_descr(sess, offer, true);
+		if (err) {
+			warning("demo: decode offer failed (%m)\n", err);
+			goto out;
+		}
 	}
 
  out:
@@ -213,38 +226,60 @@ static int create_session(struct mbuf *offer)
 }
 
 
-static int handle_post_call(const struct http_msg *msg)
+static int handle_put_sdp(const struct http_msg *msg)
 {
 	struct session_description sd = {"",NULL};
-	int err;
+	struct mbuf *offer = NULL;
+	int err = 0;
 
-	info("demo: handle POST call: content is '%r/%r'\n",
+	info("demo: handle PUT sdp: content is '%r/%r'\n",
 	     &msg->ctyp.type, &msg->ctyp.subtype);
 
-	if (msg_ctype_cmp(&msg->ctyp, "application", "json")) {
+	if (msg->clen) {
 
-		err = session_description_decode(&sd, msg->mb);
-		if (err)
-			goto out;
+		if (msg_ctype_cmp(&msg->ctyp, "application", "json")) {
 
-		if (0 == str_casecmp(sd.type, "offer")) {
-
-			err = create_session(sd.sdp);
+			err = session_description_decode(&sd, msg->mb);
 			if (err)
 				goto out;
+
+			if (0 == str_casecmp(sd.type, "offer")) {
+
+				offer = sd.sdp;
+			}
+			else if (0 == str_casecmp(sd.type, "answer")) {
+
+				err = rtcsession_decode_descr(sess, sd.sdp,
+							      false);
+				if (err) {
+					warning("decode error (%m)\n", err);
+				}
+
+				err = rtcsession_start_ice(sess);
+				if (err) {
+					warning("demo: failed to start ice"
+						" (%m)\n", err);
+					goto out;
+				}
+			}
+			else {
+				warning("invalid session description type:"
+					" %s\n",
+					sd.type);
+				err = EPROTO;
+				goto out;
+			}
 		}
 		else {
-			warning("invalid session description type: %s\n",
-				sd.type);
+			warning("unknown content-type: %r/%r\n",
+				&msg->ctyp.type, &msg->ctyp.subtype);
 			err = EPROTO;
 			goto out;
 		}
-	}
-	else {
-		warning("unknown content-type: %r/%r\n",
-			&msg->ctyp.type, &msg->ctyp.subtype);
-		err = EPROTO;
-		goto out;
+
+		err = create_session(offer);
+		if (err)
+			goto out;
 	}
 
 out:
@@ -300,7 +335,18 @@ static void http_req_handler(struct http_conn *conn,
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/call")) {
 
-		err = handle_post_call(msg);
+		/* TODO: generate a unique session id */
+
+		/* sync reply */
+		http_reply(conn, 200, "OK",
+			   "Content-Length: 0\r\n"
+			   "Access-Control-Allow-Origin: *\r\n"
+			   "\r\n");
+	}
+	else if (0 == pl_strcasecmp(&msg->met, "PUT") &&
+		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
+
+		err = handle_put_sdp(msg);
 		if (err)
 			goto out;
 
@@ -321,6 +367,7 @@ static void http_req_handler(struct http_conn *conn,
 			   "\r\n");
 	}
 	else {
+		warning("not found: %r %r\n", &msg->met, &msg->path);
 		http_ereply(conn, 404, "Not Found");
 	}
 

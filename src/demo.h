@@ -34,11 +34,14 @@ int rtcsession_add_audio(struct rtcsession *sess,
 int rtcsession_add_video(struct rtcsession *sess,
 			 const struct config *cfg,
 			 struct list *vidcodecl);
-int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer);
-int rtcsession_encode_answer(struct rtcsession *sess, struct mbuf **mb);
+int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
+			    bool offer);
+int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
+			    bool offer);
 int rtcsession_start_ice(struct rtcsession *sess);
 int rtcsession_start_audio(struct rtcsession *sess, struct media *media);
 int rtcsession_start_video(struct rtcsession *sess, struct media *media);
+bool rtcsession_got_offer(const struct rtcsession *sess);
 
 
 int load_file(struct mbuf *mb, const char *filename);

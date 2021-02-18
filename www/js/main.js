@@ -58,6 +58,11 @@ function start_call() {
     console.log(`ice state changed: ${pc1.iceConnectionState}`);
   };
 
+  pc1.onsignalingstatechange = (event) => {
+    console.log("---- signalingstate: %s", pc1.signalingState);
+  };
+
+
   console.log('Requesting local stream');
   navigator.mediaDevices
     .getUserMedia({
@@ -89,8 +94,7 @@ function gotStream(stream) {
   localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
   console.log('Adding Local Stream to peer connection');
 
-  pc1.createOffer(offerOptions)
-    .then(gotDescription1, onCreateSessionDescriptionError);
+  send_post_call();
 }
 
 
@@ -100,51 +104,57 @@ function onCreateSessionDescriptionError(error) {
 
 
 /*
- * Send the SDP offer to the server via HTTP request
- *
- * format:
- *
- * {
- *   "type" : "offer",
- *   "sdp"  : "v=0\r\ns=-\r\n..."
- * }
+ * Create a new call
  */
-function send_offer(sdp) {
+function send_post_call() {
   var xhr = new XMLHttpRequest();
 
-  console.log('send offer: ' + self.location);
+  console.log('send post call: ' + self.location);
 
   xhr.open("POST", '' + self.location + 'call', true);
 
-  //Send the proper header information along with the request
-  xhr.setRequestHeader("Content-Type", "application/json");
-
-  xhr.onreadystatechange = function() { // Call a function when the state changes.
+  xhr.onreadystatechange = function() {
     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
       var body = xhr.response;
 
-      console.log('HTTP Request complete');
-
-      const contentType = xhr.getResponseHeader("Content-Type");
-
-      console.log('content-type: ' + contentType);
-
-      if (contentType != "application/json") {
-        console.log('unsupported content-type from server');
-	xhr.abort();
+      if (1) {
+        pc1.createOffer(offerOptions)
+           .then(gotDescription1, onCreateSessionDescriptionError);
       }
+      else {
+	      // todo: decode sdp and set remote description
+      }
+    }
+  }
 
-      var answer = JSON.parse(body);
+  xhr.send();
+}
 
-      console.log(`set remote description -- SDP Answer`);
 
-      pc1.setRemoteDescription(answer).then(() => {
+function send_put_sdp(descr)
+{
+  var xhr = new XMLHttpRequest();
+
+  console.log('send put sdp: ' + self.location);
+
+  xhr.open("PUT", '' + self.location + 'sdp', true);
+
+  xhr.setRequestHeader("Content-Type", "application/json");
+
+  xhr.onreadystatechange = function() {
+    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+
+      const descr = JSON.parse(xhr.response);
+
+      console.log("remote description: type=%s", descr.type);
+
+      pc1.setRemoteDescription(descr).then(() => {
         console.log('set remote description -- success');
       }, onSetSessionDescriptionError);
     }
   }
 
-  xhr.send(sdp);
+  xhr.send(descr);
 }
 
 
@@ -152,7 +162,7 @@ function send_offer(sdp) {
  * ${desc.sdp}
  */
 function gotDescription1(desc) {
-  console.log(`Offer from pc1`);
+  console.log('set local description');
 
   pc1.setLocalDescription(desc)
     .then(() => {
@@ -197,18 +207,17 @@ function gotRemoteStream(e) {
 
 function onIceCandidate(pc, event) {
 
-//  console.log(`ICE candidate:\n${event.candidate ? event.candidate.candidate : '(null)'}`);
+  console.log(`ICE candidate:\n${event.candidate ? event.candidate.candidate : '(null)'}`);
 
   if (event.candidate) {
 	    // Send the candidate to the remote peer
   } else {
      // All ICE candidates have been sent
 
-    var sd = pc.localDescription;
+    const sd = pc.localDescription;
     const json = JSON.stringify(sd);
 
-    // send SDP offer to the server
-    send_offer(json);
+    send_put_sdp(json);
   }
 }
 

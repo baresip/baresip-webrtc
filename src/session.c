@@ -526,17 +526,18 @@ int rtcsession_add_video(struct rtcsession *sess,
 }
 
 
-int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer)
+int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
+			    bool offer)
 {
 	struct le *le;
 	int err;
 
-	if (!sess || !offer)
+	if (!sess || !sdp)
 		return EINVAL;
 
-	info("rtcsession: decode offer\n");
+	info("rtcsession: decode %s\n", offer ? "offer" : "answer");
 
-	err = sdp_decode(sess->sdp, offer, true);
+	err = sdp_decode(sess->sdp, sdp, offer);
 	if (err) {
 		warning("rtcsession: sdp decode failed (%m)\n", err);
 		return err;
@@ -571,7 +572,8 @@ int rtcsession_decode_offer(struct rtcsession *sess, struct mbuf *offer)
 }
 
 
-int rtcsession_encode_answer(struct rtcsession *sess, struct mbuf **mb)
+int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
+			    bool offer)
 {
 	int err;
 
@@ -583,11 +585,17 @@ int rtcsession_encode_answer(struct rtcsession *sess, struct mbuf **mb)
 		return EPROTO;
 	}
 
-	info("rtcsession: encode answer\n");
+	info("rtcsession: encode %s\n", offer ? "offer" : "answer");
 
-	err = sdp_encode(mb, sess->sdp, false);
+	err = sdp_encode(mb, sess->sdp, offer);
 	if (err)
 		return err;
+
+#if 1
+	re_printf("- - %s - -\n", offer ? "offer" : "answer");
+	re_printf("%b\n", (*mb)->buf, (*mb)->end);
+	re_printf("- - - - - - -\n");
+#endif
 
 	sess->sdp_ok = true;
 
@@ -601,6 +609,8 @@ int rtcsession_start_ice(struct rtcsession *sess)
 
 	if (!sess)
 		return EINVAL;
+
+	info(".. rtcsession: start ice\n");
 
 	if (!sess->sdp_ok) {
 		warning("rtcsession: ice: sdp not ready\n");
@@ -707,4 +717,11 @@ int rtcsession_start_video(struct rtcsession *sess, struct media *media)
 	}
 
 	return 0;
+}
+
+
+/* todo: replace with signalingstate */
+bool rtcsession_got_offer(const struct rtcsession *sess)
+{
+	return sess ? sess->got_offer : false;
 }
