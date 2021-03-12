@@ -28,7 +28,7 @@ static const char *modv[] = {
 	"g722",
 	"aufile",
 	"cairo",
-	"vp8",
+	"avcodec",
 	"fakevideo",
 	"avformat",
 	"ausine"
