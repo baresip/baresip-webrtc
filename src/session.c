@@ -537,6 +537,12 @@ int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
 
 	info("rtcsession: decode %s\n", offer ? "offer" : "answer");
 
+#if 1
+	re_printf("- - %s - -\n", offer ? "offer" : "answer");
+	re_printf("%b\n", (sdp)->buf, (sdp)->end);
+	re_printf("- - - - - - -\n");
+#endif
+
 	err = sdp_decode(sess->sdp, sdp, offer);
 	if (err) {
 		warning("rtcsession: sdp decode failed (%m)\n", err);
