@@ -96,8 +96,15 @@ enum media_kind {
 	MEDIA_KIND_VIDEO,
 };
 
-
-/* one-to-one mapping with stream */
+/*
+ * https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack
+ *
+ * The MediaStreamTrack interface represents a single media track within
+ * a stream; typically, these are audio or video tracks, but other
+ * track types may exist as well.
+ *
+ * NOTE: one-to-one mapping with 'struct stream'
+ */
 struct media_track {
 	struct le le;
 	enum media_kind kind;
