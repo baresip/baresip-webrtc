@@ -77,6 +77,51 @@ int mediatrack_start_audio(struct media_track *media)
 }
 
 
+int mediatrack_start_video(struct media_track *media)
+{
+	const struct sdp_format *sc;
+	struct video *vid;
+	int err = 0;
+
+	if (!media)
+		return EINVAL;
+
+	vid = media->u.vid;
+
+	if (!media->ice_conn || !media->dtls_ok) {
+		warning("rtcsession: start_video: ice or dtls not ready\n");
+		return EPROTO;
+	}
+
+	info("rtcsession: start video\n");
+
+	/* Video Stream */
+	sc = sdp_media_rformat(stream_sdpmedia(video_strm(vid)), NULL);
+	if (sc) {
+		struct vidcodec *vc = sc->data;
+
+		err  = video_encoder_set(vid, vc, sc->pt, sc->params);
+		if (err) {
+			warning("rtcsession: start:"
+				" video_encoder_set error: %m\n", err);
+			return err;
+		}
+
+		err = video_start_source(vid, NULL);
+		if (err) {
+			warning("rtcsession: start:"
+				" video_start error: %m\n", err);
+			return err;
+		}
+	}
+	else {
+		info("rtcsession: video stream is disabled..\n");
+	}
+
+	return 0;
+}
+
+
 const char *media_kind_name(enum media_kind kind)
 {
 	switch (kind) {

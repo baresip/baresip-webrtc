@@ -573,53 +573,6 @@ int rtcsession_start_ice(struct rtcsession *sess)
 }
 
 
-
-
-int rtcsession_start_video(struct rtcsession *sess, struct media_track *media)
-{
-	const struct sdp_format *sc;
-	struct video *vid;
-	int err = 0;
-
-	if (!sess)
-		return EINVAL;
-
-	vid = media->u.vid;
-
-	if (!media->ice_conn || !media->dtls_ok) {
-		warning("rtcsession: start_video: ice or dtls not ready\n");
-		return EPROTO;
-	}
-
-	info("rtcsession: start video\n");
-
-	/* Video Stream */
-	sc = sdp_media_rformat(stream_sdpmedia(video_strm(vid)), NULL);
-	if (sc) {
-		struct vidcodec *vc = sc->data;
-
-		err  = video_encoder_set(vid, vc, sc->pt, sc->params);
-		if (err) {
-			warning("rtcsession: start:"
-				" video_encoder_set error: %m\n", err);
-			return err;
-		}
-
-		err = video_start_source(vid, &sess->ctx);
-		if (err) {
-			warning("rtcsession: start:"
-				" video_start error: %m\n", err);
-			return err;
-		}
-	}
-	else {
-		info("rtcsession: video stream is disabled..\n");
-	}
-
-	return 0;
-}
-
-
 /* todo: replace with signalingstate */
 bool rtcsession_got_offer(const struct rtcsession *sess)
 {

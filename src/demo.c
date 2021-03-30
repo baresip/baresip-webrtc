@@ -153,7 +153,7 @@ static void session_estab_handler(struct media_track *media,
 		break;
 
 	case MEDIA_KIND_VIDEO:
-		err = rtcsession_start_video(sess, media);
+		err = mediatrack_start_video(media);
 		if (err) {
 			warning("demo: could not start video (%m)\n", err);
 		}
