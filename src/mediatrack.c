@@ -5,7 +5,7 @@
 #include "demo.h"
 
 
-static void media_destructor(void *data)
+static void destructor(void *data)
 {
 	struct media_track *media = data;
 
@@ -18,7 +18,7 @@ struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
 {
 	struct media_track *media;
 
-	media = mem_zalloc(sizeof(*media), media_destructor);
+	media = mem_zalloc(sizeof(*media), destructor);
 	if (!media)
 		return NULL;
 
@@ -43,19 +43,19 @@ int mediatrack_start_audio(struct media_track *media)
 	au = media->u.au;
 
 	if (!media->ice_conn || !media->dtls_ok) {
-		warning("rtcsession: start_audio: ice or dtls not ready\n");
+		warning("mediatrack: start_audio: ice or dtls not ready\n");
 		return EPROTO;
 	}
 
-	info("rtcsession: start audio\n");
+	info("mediatrack: start audio\n");
 
 	fmt = sdp_media_rformat(stream_sdpmedia(audio_strm(au)), NULL);
 	if (fmt) {
 		struct aucodec *ac = fmt->data;
 
-		err  = audio_encoder_set(au, ac, fmt->pt, fmt->params);
+		err = audio_encoder_set(au, ac, fmt->pt, fmt->params);
 		if (err) {
-			warning("rtcsession: start:"
+			warning("mediatrack: start:"
 				" audio_encoder_set error: %m\n", err);
 			return err;
 		}
@@ -64,13 +64,13 @@ int mediatrack_start_audio(struct media_track *media)
 		err = audio_start_source(au, baresip_ausrcl(),
 					 baresip_aufiltl());
 		if (err) {
-			warning("rtcsession: start:"
+			warning("mediatrack: start:"
 				" audio_start error: %m\n", err);
 			return err;
 		}
 	}
 	else {
-		info("rtcsession: audio stream is disabled..\n");
+		info("mediatrack: audio stream is disabled..\n");
 	}
 
 	return 0;
@@ -89,11 +89,11 @@ int mediatrack_start_video(struct media_track *media)
 	vid = media->u.vid;
 
 	if (!media->ice_conn || !media->dtls_ok) {
-		warning("rtcsession: start_video: ice or dtls not ready\n");
+		warning("mediatrack: start_video: ice or dtls not ready\n");
 		return EPROTO;
 	}
 
-	info("rtcsession: start video\n");
+	info("mediatrack: start video\n");
 
 	fmt = sdp_media_rformat(stream_sdpmedia(video_strm(vid)), NULL);
 	if (fmt) {
@@ -101,20 +101,20 @@ int mediatrack_start_video(struct media_track *media)
 
 		err  = video_encoder_set(vid, vc, fmt->pt, fmt->params);
 		if (err) {
-			warning("rtcsession: start:"
+			warning("mediatrack: start:"
 				" video_encoder_set error: %m\n", err);
 			return err;
 		}
 
 		err = video_start_source(vid, NULL);
 		if (err) {
-			warning("rtcsession: start:"
+			warning("mediatrack: start:"
 				" video_start error: %m\n", err);
 			return err;
 		}
 	}
 	else {
-		info("rtcsession: video stream is disabled..\n");
+		info("mediatrack: video stream is disabled..\n");
 	}
 
 	return 0;
