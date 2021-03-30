@@ -17,7 +17,7 @@ enum media_type {
 
 
 /* one-to-one mapping with stream */
-struct media {
+struct media_track {
 	struct le le;
 	enum media_type type;
 	union {
@@ -57,7 +57,7 @@ struct rtcsession {
 };
 
 
-static struct stream *media_get_stream(const struct media *media)
+static struct stream *media_get_stream(const struct media_track *media)
 {
 	switch (media->type) {
 
@@ -85,7 +85,7 @@ static void destructor(void *data)
 
 	i=0;
 	for (le = sess->medial.head; le; le = le->next) {
-		struct media *media = le->data;
+		struct media_track *media = le->data;
 
 		if (!media->u.p)
 			continue;
@@ -104,7 +104,7 @@ static void destructor(void *data)
 	info("\n");
 
 	for (le = sess->medial.head; le; le = le->next) {
-		struct media *media = le->data;
+		struct media_track *media = le->data;
 
 		if (!media->u.p)
 			continue;
@@ -123,7 +123,7 @@ static void destructor(void *data)
 
 	le = sess->medial.head;
 	while (le) {
-		struct media *media = le->data;
+		struct media_track *media = le->data;
 
 		le = le->next;
 
@@ -150,16 +150,16 @@ static void destructor(void *data)
 
 static void media_destructor(void *data)
 {
-	struct media *media = data;
+	struct media_track *media = data;
 
 	list_unlink(&media->le);
 }
 
 
-static struct media *media_add(struct rtcsession *sess,
+static struct media_track *media_add(struct rtcsession *sess,
 			       enum media_type type)
 {
-	struct media *media;
+	struct media_track *media;
 
 	media = mem_zalloc(sizeof(*media), media_destructor);
 
@@ -172,13 +172,13 @@ static struct media *media_add(struct rtcsession *sess,
 }
 
 
-static struct media *lookup_media(struct rtcsession *sess,
+static struct media_track *lookup_media(struct rtcsession *sess,
 				  struct stream *strm)
 {
 	struct le *le;
 
 	for (le = sess->medial.head; le; le = le->next) {
-		struct media *media = le->data;
+		struct media_track *media = le->data;
 
 		if (strm == media_get_stream(media))
 			return media;
@@ -259,7 +259,7 @@ static void menc_event_handler(enum menc_event event,
 			       void *arg)
 {
 	struct rtcsession *sess = arg;
-	struct media *media;
+	struct media_track *media;
 
 	media = lookup_media(sess, strm);
 
@@ -310,7 +310,7 @@ static void menc_error_handler(int err, void *arg)
 
 static void mnatconn_handler(struct stream *strm, void *arg)
 {
-	struct media *media = arg;
+	struct media_track *media = arg;
 	int err;
 
 	info("rtcsession: ice connected (%s)\n", stream_name(strm));
@@ -326,7 +326,7 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 
 static void rtpestab_handler(struct stream *strm, void *arg)
 {
-	struct media *media = arg;
+	struct media_track *media = arg;
 
 	info("rtcsession: rtp established (%s)\n", stream_name(strm));
 
@@ -337,7 +337,7 @@ static void rtpestab_handler(struct stream *strm, void *arg)
 static void rtcp_handler(struct stream *strm,
 			 struct rtcp_msg *msg, void *arg)
 {
-	struct media *media = arg;
+	struct media_track *media = arg;
 	(void)strm;
 	(void)msg;
 
@@ -347,7 +347,7 @@ static void rtcp_handler(struct stream *strm,
 
 static void stream_error_handler(struct stream *strm, int err, void *arg)
 {
-	struct media *media = arg;
+	struct media_track *media = arg;
 
 	warning("rtcsession: '%s' stream error (%m)\n",
 		stream_name(strm), err);
@@ -448,7 +448,7 @@ int rtcsession_add_audio(struct rtcsession *sess,
 			 const struct config *cfg,
 			 struct list *aucodecl)
 {
-	struct media *media;
+	struct media_track *media;
 	struct stream *strm;
 	int err;
 
@@ -489,7 +489,7 @@ int rtcsession_add_video(struct rtcsession *sess,
 			 const struct config *cfg,
 			 struct list *vidcodecl)
 {
-	struct media *media;
+	struct media_track *media;
 	struct stream *strm;
 	int err;
 
@@ -551,7 +551,7 @@ int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
 
 	/* must be done after sdp_decode() */
 	for (le = sess->medial.head; le; le = le->next) {
-		struct media *media = le->data;
+		struct media_track *media = le->data;
 
 		if (!media->u.p)
 			continue;
@@ -635,7 +635,7 @@ int rtcsession_start_ice(struct rtcsession *sess)
 }
 
 
-int rtcsession_start_audio(struct rtcsession *sess, struct media *media)
+int rtcsession_start_audio(struct rtcsession *sess, struct media_track *media)
 {
 	const struct sdp_format *sc;
 	struct audio *au;
@@ -681,7 +681,7 @@ int rtcsession_start_audio(struct rtcsession *sess, struct media *media)
 }
 
 
-int rtcsession_start_video(struct rtcsession *sess, struct media *media)
+int rtcsession_start_video(struct rtcsession *sess, struct media_track *media)
 {
 	const struct sdp_format *sc;
 	struct video *vid;

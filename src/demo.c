@@ -134,7 +134,8 @@ static void session_gather_handler(void *arg)
 }
 
 
-static void session_estab_handler(bool audio, struct media *media, void *arg)
+static void session_estab_handler(bool audio, struct media_track *media,
+				  void *arg)
 {
 	int err;
 

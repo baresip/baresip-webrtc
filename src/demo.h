@@ -12,11 +12,12 @@
  */
 
 struct stream;
-struct media;
+struct media_track;
 struct rtcsession;
 
 typedef void (rtcsession_gather_h)(void *arg);
-typedef void (rtcsession_estab_h)(bool audio, struct media *media, void *arg);
+typedef void (rtcsession_estab_h)(bool audio, struct media_track *media,
+				  void *arg);
 typedef void (rtcsession_close_h)(int err, void *arg);
 
 int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
@@ -39,8 +40,8 @@ int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
 int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
 			    bool offer);
 int rtcsession_start_ice(struct rtcsession *sess);
-int rtcsession_start_audio(struct rtcsession *sess, struct media *media);
-int rtcsession_start_video(struct rtcsession *sess, struct media *media);
+int rtcsession_start_audio(struct rtcsession *sess, struct media_track *media);
+int rtcsession_start_video(struct rtcsession *sess, struct media_track *media);
 bool rtcsession_got_offer(const struct rtcsession *sess);
 
 
