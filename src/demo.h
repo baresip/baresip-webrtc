@@ -77,3 +77,16 @@ int session_description_encode(struct odict **odp,
 int session_description_decode(struct session_description *sd,
 			       struct mbuf *mb);
 void session_description_reset(struct session_description *sd);
+
+
+/*
+ * Media Track
+ */
+
+enum media_kind {
+	MEDIA_KIND_AUDIO,
+	MEDIA_KIND_VIDEO,
+};
+
+
+struct media_track;

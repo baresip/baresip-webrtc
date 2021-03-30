@@ -10,16 +10,10 @@
 #include "demo.h"
 
 
-enum media_type {
-	MEDIA_TYPE_AUDIO,
-	MEDIA_TYPE_VIDEO,
-};
-
-
 /* one-to-one mapping with stream */
 struct media_track {
 	struct le le;
-	enum media_type type;
+	enum media_kind kind;
 	union {
 		struct audio *au;
 		struct video *vid;
@@ -59,10 +53,10 @@ struct rtcsession {
 
 static struct stream *media_get_stream(const struct media_track *media)
 {
-	switch (media->type) {
+	switch (media->kind) {
 
-	case MEDIA_TYPE_AUDIO: return audio_strm(media->u.au);
-	case MEDIA_TYPE_VIDEO: return video_strm(media->u.vid);
+	case MEDIA_KIND_AUDIO: return audio_strm(media->u.au);
+	case MEDIA_KIND_VIDEO: return video_strm(media->u.vid);
 	default:               return NULL;
 	}
 }
@@ -109,13 +103,13 @@ static void destructor(void *data)
 		if (!media->u.p)
 			continue;
 
-		switch (media->type) {
+		switch (media->kind) {
 
-		case MEDIA_TYPE_AUDIO:
+		case MEDIA_KIND_AUDIO:
 			debug("%H\n", audio_debug, media->u.au);
 			break;
 
-		case MEDIA_TYPE_VIDEO:
+		case MEDIA_KIND_VIDEO:
 			debug("%H\n", video_debug, media->u.vid);
 			break;
 		}
@@ -127,13 +121,13 @@ static void destructor(void *data)
 
 		le = le->next;
 
-		switch (media->type) {
+		switch (media->kind) {
 
-		case MEDIA_TYPE_AUDIO:
+		case MEDIA_KIND_AUDIO:
 			audio_stop(media->u.au);
 			break;
 
-		case MEDIA_TYPE_VIDEO:
+		case MEDIA_KIND_VIDEO:
 			video_stop(media->u.vid, NULL);
 			break;
 		}
@@ -157,13 +151,13 @@ static void media_destructor(void *data)
 
 
 static struct media_track *media_add(struct rtcsession *sess,
-			       enum media_type type)
+				     enum media_kind kind)
 {
 	struct media_track *media;
 
 	media = mem_zalloc(sizeof(*media), media_destructor);
 
-	media->type = type;
+	media->kind = kind;
 	media->sess = sess;
 
 	list_append(&sess->medial, &media->le, media);
@@ -457,7 +451,7 @@ int rtcsession_add_audio(struct rtcsession *sess,
 
 	info("rtcsession: add audio (codecs=%u)\n", list_count(aucodecl));
 
-	media = media_add(sess, MEDIA_TYPE_AUDIO);
+	media = media_add(sess, MEDIA_KIND_AUDIO);
 
 	err = audio_alloc(&media->u.au, &sess->streaml,
 			  &sess->stream_prm, cfg,
@@ -498,7 +492,7 @@ int rtcsession_add_video(struct rtcsession *sess,
 
 	info("rtcsession: add video (codecs=%u)\n", list_count(vidcodecl));
 
-	media = media_add(sess, MEDIA_TYPE_VIDEO);
+	media = media_add(sess, MEDIA_KIND_VIDEO);
 
 	err = video_alloc(&media->u.vid, &sess->streaml,
 			  &sess->stream_prm,
@@ -556,9 +550,9 @@ int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
 		if (!media->u.p)
 			continue;
 
-		switch (media->type) {
+		switch (media->kind) {
 
-		case MEDIA_TYPE_VIDEO:
+		case MEDIA_KIND_VIDEO:
 			video_sdp_attr_decode(media->u.vid);
 			break;
 
