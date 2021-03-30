@@ -124,30 +124,6 @@ static void destructor(void *data)
 }
 
 
-static void media_destructor(void *data)
-{
-	struct media_track *media = data;
-
-	list_unlink(&media->le);
-}
-
-
-static struct media_track *media_add(struct rtcsession *sess,
-				     enum media_kind kind)
-{
-	struct media_track *media;
-
-	media = mem_zalloc(sizeof(*media), media_destructor);
-
-	media->kind = kind;
-	media->sess = sess;
-
-	list_append(&sess->medial, &media->le, media);
-
-	return media;
-}
-
-
 static struct media_track *lookup_media(struct rtcsession *sess,
 				  struct stream *strm)
 {
@@ -432,7 +408,7 @@ int rtcsession_add_audio(struct rtcsession *sess,
 
 	info("rtcsession: add audio (codecs=%u)\n", list_count(aucodecl));
 
-	media = media_add(sess, MEDIA_KIND_AUDIO);
+	media = media_track_add(&sess->medial, sess, MEDIA_KIND_AUDIO);
 
 	err = audio_alloc(&media->u.au, &sess->streaml,
 			  &sess->stream_prm, cfg,
@@ -473,7 +449,7 @@ int rtcsession_add_video(struct rtcsession *sess,
 
 	info("rtcsession: add video (codecs=%u)\n", list_count(vidcodecl));
 
-	media = media_add(sess, MEDIA_KIND_VIDEO);
+	media = media_track_add(&sess->medial, sess, MEDIA_KIND_VIDEO);
 
 	err = video_alloc(&media->u.vid, &sess->streaml,
 			  &sess->stream_prm,

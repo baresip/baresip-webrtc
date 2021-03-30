@@ -107,11 +107,13 @@ struct media_track {
 		void *p;
 	} u;
 
-	struct rtcsession *sess;  /* parent */
+	struct rtcsession *sess;  /* pointer to parent */
 	bool ice_conn;
 	bool dtls_ok;
 	bool rtp;
 	bool rtcp;
 };
 
+struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
+				    enum media_kind kind);
 const char *media_kind_name(enum media_kind kind);
