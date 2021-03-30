@@ -146,7 +146,7 @@ static void session_estab_handler(struct media_track *media,
 	switch (media->kind) {
 
 	case MEDIA_KIND_AUDIO:
-		err = rtcsession_start_audio(sess, media);
+		err = mediatrack_start_audio(media);
 		if (err) {
 			warning("demo: could not start audio (%m)\n", err);
 		}

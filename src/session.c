@@ -66,8 +66,7 @@ static void destructor(void *data)
 		if (!media->u.p)
 			continue;
 
-		info(".. #%zu '%s'\n",
-		     i, stream_name(media_get_stream(media)));
+		info(".. #%zu '%s'\n", i, media_kind_name(media->kind));
 		info(".. ice_conn: %d\n", media->ice_conn);
 		info(".. dtls:     %d\n", media->dtls_ok);
 		info(".. rtp:      %d\n", media->rtp);
@@ -226,20 +225,8 @@ static void menc_event_handler(enum menc_event event,
 		stream_set_secure(strm, true);
 		stream_start(strm);
 
-		if (strstr(prm, "audio")) {
-
-			if (sess->estabh)
-				sess->estabh(media, sess->arg);
-		}
-		else if (strstr(prm, "video")) {
-
-			if (sess->estabh)
-				sess->estabh(media, sess->arg);
-		}
-		else {
-			info("rtcsession: mediaenc: no match for stream"
-			     " (%s)\n", prm);
-		}
+		if (sess->estabh)
+			sess->estabh(media, sess->arg);
 		break;
 
 	default:
@@ -586,50 +573,6 @@ int rtcsession_start_ice(struct rtcsession *sess)
 }
 
 
-int rtcsession_start_audio(struct rtcsession *sess, struct media_track *media)
-{
-	const struct sdp_format *sc;
-	struct audio *au;
-	int err = 0;
-
-	if (!sess)
-		return EINVAL;
-
-	au = media->u.au;
-
-	if (!media->ice_conn || !media->dtls_ok) {
-		warning("rtcsession: start_audio: ice or dtls not ready\n");
-		return EPROTO;
-	}
-
-	info("rtcsession: start audio\n");
-
-	/* Audio Stream */
-	sc = sdp_media_rformat(stream_sdpmedia(audio_strm(au)), NULL);
-	if (sc) {
-		struct aucodec *ac = sc->data;
-
-		err  = audio_encoder_set(au, ac, sc->pt, sc->params);
-		if (err) {
-			warning("rtcsession: start:"
-				" audio_encoder_set error: %m\n", err);
-			return err;
-		}
-
-		err = audio_start_source(au, baresip_ausrcl(),
-					 baresip_aufiltl());
-		if (err) {
-			warning("rtcsession: start:"
-				" audio_start error: %m\n", err);
-			return err;
-		}
-	}
-	else {
-		info("rtcsession: audio stream is disabled..\n");
-	}
-
-	return 0;
-}
 
 
 int rtcsession_start_video(struct rtcsession *sess, struct media_track *media)
