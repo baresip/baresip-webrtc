@@ -121,6 +121,24 @@ int mediatrack_start_video(struct media_track *media)
 }
 
 
+void mediatrack_stop(struct media_track *media)
+{
+	if (!media)
+		return;
+
+	switch (media->kind) {
+
+	case MEDIA_KIND_AUDIO:
+		audio_stop(media->u.au);
+		break;
+
+	case MEDIA_KIND_VIDEO:
+		video_stop(media->u.vid, NULL);
+		break;
+	}
+}
+
+
 const char *media_kind_name(enum media_kind kind)
 {
 	switch (kind) {

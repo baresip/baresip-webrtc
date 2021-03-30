@@ -102,16 +102,7 @@ static void destructor(void *data)
 
 		le = le->next;
 
-		switch (media->kind) {
-
-		case MEDIA_KIND_AUDIO:
-			audio_stop(media->u.au);
-			break;
-
-		case MEDIA_KIND_VIDEO:
-			video_stop(media->u.vid, NULL);
-			break;
-		}
+		mediatrack_stop(media);
 
 		mem_deref(media->u.p);
 		mem_deref(media);

@@ -121,6 +121,7 @@ struct media_track {
 
 struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
 				    enum media_kind kind);
-int mediatrack_start_audio(struct media_track *media);
-int mediatrack_start_video(struct media_track *media);
+int  mediatrack_start_audio(struct media_track *media);
+int  mediatrack_start_video(struct media_track *media);
+void mediatrack_stop(struct media_track *media);
 const char *media_kind_name(enum media_kind kind);
