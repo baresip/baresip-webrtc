@@ -10,24 +10,6 @@
 #include "demo.h"
 
 
-/* one-to-one mapping with stream */
-struct media_track {
-	struct le le;
-	enum media_kind kind;
-	union {
-		struct audio *au;
-		struct video *vid;
-		void *p;
-	} u;
-
-	struct rtcsession *sess;  /* parent */
-	bool ice_conn;
-	bool dtls_ok;
-	bool rtp;
-	bool rtcp;
-};
-
-
 struct rtcsession {
 	struct stream_param stream_prm;
 	struct list streaml;

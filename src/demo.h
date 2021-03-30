@@ -45,8 +45,16 @@ int rtcsession_start_video(struct rtcsession *sess, struct media_track *media);
 bool rtcsession_got_offer(const struct rtcsession *sess);
 
 
+/*
+ * Util
+ */
+
 int load_file(struct mbuf *mb, const char *filename);
 
+
+/*
+ * Demo
+ */
 
 int demo_init(const char *ice_server,
 	      const char *stun_user, const char *stun_pass);
@@ -89,4 +97,19 @@ enum media_kind {
 };
 
 
-struct media_track;
+/* one-to-one mapping with stream */
+struct media_track {
+	struct le le;
+	enum media_kind kind;
+	union {
+		struct audio *au;
+		struct video *vid;
+		void *p;
+	} u;
+
+	struct rtcsession *sess;  /* parent */
+	bool ice_conn;
+	bool dtls_ok;
+	bool rtp;
+	bool rtcp;
+};
