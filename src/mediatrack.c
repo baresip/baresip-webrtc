@@ -33,7 +33,7 @@ struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
 
 int mediatrack_start_audio(struct media_track *media)
 {
-	const struct sdp_format *sc;
+	const struct sdp_format *fmt;
 	struct audio *au;
 	int err = 0;
 
@@ -49,18 +49,18 @@ int mediatrack_start_audio(struct media_track *media)
 
 	info("rtcsession: start audio\n");
 
-	/* Audio Stream */
-	sc = sdp_media_rformat(stream_sdpmedia(audio_strm(au)), NULL);
-	if (sc) {
-		struct aucodec *ac = sc->data;
+	fmt = sdp_media_rformat(stream_sdpmedia(audio_strm(au)), NULL);
+	if (fmt) {
+		struct aucodec *ac = fmt->data;
 
-		err  = audio_encoder_set(au, ac, sc->pt, sc->params);
+		err  = audio_encoder_set(au, ac, fmt->pt, fmt->params);
 		if (err) {
 			warning("rtcsession: start:"
 				" audio_encoder_set error: %m\n", err);
 			return err;
 		}
 
+		/* TODO: move ausrcl/aufiltl one level up */
 		err = audio_start_source(au, baresip_ausrcl(),
 					 baresip_aufiltl());
 		if (err) {
@@ -79,7 +79,7 @@ int mediatrack_start_audio(struct media_track *media)
 
 int mediatrack_start_video(struct media_track *media)
 {
-	const struct sdp_format *sc;
+	const struct sdp_format *fmt;
 	struct video *vid;
 	int err = 0;
 
@@ -95,12 +95,11 @@ int mediatrack_start_video(struct media_track *media)
 
 	info("rtcsession: start video\n");
 
-	/* Video Stream */
-	sc = sdp_media_rformat(stream_sdpmedia(video_strm(vid)), NULL);
-	if (sc) {
-		struct vidcodec *vc = sc->data;
+	fmt = sdp_media_rformat(stream_sdpmedia(video_strm(vid)), NULL);
+	if (fmt) {
+		struct vidcodec *vc = fmt->data;
 
-		err  = video_encoder_set(vid, vc, sc->pt, sc->params);
+		err  = video_encoder_set(vid, vc, fmt->pt, fmt->params);
 		if (err) {
 			warning("rtcsession: start:"
 				" video_encoder_set error: %m\n", err);
