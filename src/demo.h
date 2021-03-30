@@ -16,7 +16,7 @@ struct media_track;
 struct rtcsession;
 
 typedef void (rtcsession_gather_h)(void *arg);
-typedef void (rtcsession_estab_h)(bool audio, struct media_track *media,
+typedef void (rtcsession_estab_h)(struct media_track *media,
 				  void *arg);
 typedef void (rtcsession_close_h)(int err, void *arg);
 
@@ -113,3 +113,5 @@ struct media_track {
 	bool rtp;
 	bool rtcp;
 };
+
+const char *media_kind_name(enum media_kind kind);

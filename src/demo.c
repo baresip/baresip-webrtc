@@ -134,27 +134,30 @@ static void session_gather_handler(void *arg)
 }
 
 
-static void session_estab_handler(bool audio, struct media_track *media,
+static void session_estab_handler(struct media_track *media,
 				  void *arg)
 {
 	int err;
 
 	(void)arg;
 
-	info("demo: stream established: '%s'\n",
-	     audio ? "audio" : "video");
+	info("demo: stream established: '%s'\n", media_kind_name(media->kind));
 
-	if (audio) {
+	switch (media->kind) {
+
+	case MEDIA_KIND_AUDIO:
 		err = rtcsession_start_audio(sess, media);
 		if (err) {
 			warning("demo: could not start audio (%m)\n", err);
 		}
-	}
-	else {
+		break;
+
+	case MEDIA_KIND_VIDEO:
 		err = rtcsession_start_video(sess, media);
 		if (err) {
 			warning("demo: could not start video (%m)\n", err);
 		}
+		break;
 	}
 }
 

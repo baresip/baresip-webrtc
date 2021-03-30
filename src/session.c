@@ -253,13 +253,12 @@ static void menc_event_handler(enum menc_event event,
 		if (strstr(prm, "audio")) {
 
 			if (sess->estabh)
-				sess->estabh(true, media, sess->arg);
+				sess->estabh(media, sess->arg);
 		}
 		else if (strstr(prm, "video")) {
 
-
 			if (sess->estabh)
-				sess->estabh(false, media, sess->arg);
+				sess->estabh(media, sess->arg);
 		}
 		else {
 			info("rtcsession: mediaenc: no match for stream"
