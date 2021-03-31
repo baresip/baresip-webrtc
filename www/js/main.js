@@ -6,11 +6,11 @@
 
 const audio = document.querySelector('audio#audio');
 const callButton = document.querySelector('button#callButton');
-const hangupButton = document.querySelector('button#hangupButton');
+const disconnectButton = document.querySelector('button#disconnectButton');
 
-hangupButton.disabled = true;
+disconnectButton.disabled = true;
 callButton.onclick = start_call;
-hangupButton.onclick = hangup_call;
+disconnectButton.onclick = disconnect_call;
 
 const remoteVideo = document.getElementById('remoteVideo');
 
@@ -77,7 +77,7 @@ function start_call() {
 
 
 function gotStream(stream) {
-  hangupButton.disabled = false;
+  disconnectButton.disabled = false;
 
   console.log('Received local stream');
   console.log(stream)
@@ -170,7 +170,7 @@ function gotDescription1(desc) {
 }
 
 
-function hangup_call() {
+function disconnect_call() {
   console.log('Ending call');
 
   localStream.getTracks().forEach(track => track.stop());
@@ -178,12 +178,12 @@ function hangup_call() {
   pc1.close();
   pc1 = null;
 
-  hangupButton.disabled = true;
+  disconnectButton.disabled = true;
   callButton.disabled = false;
 
   // send a message to the server
   var xhr = new XMLHttpRequest();
-  xhr.open("POST", '' + self.location + 'hangup', true);
+  xhr.open("POST", '' + self.location + 'disconnect', true);
   xhr.send();
 }
 

@@ -358,9 +358,9 @@ static void http_req_handler(struct http_conn *conn,
 		conn_pending = mem_ref(conn);
 	}
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
-		 0 == pl_strcasecmp(&msg->path, "/hangup")) {
+		 0 == pl_strcasecmp(&msg->path, "/disconnect")) {
 
-		info("demo: hangup\n");
+		info("demo: disconnect\n");
 
 		sess = mem_deref(sess);
 
