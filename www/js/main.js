@@ -9,18 +9,23 @@ const callButton = document.querySelector('button#callButton');
 const disconnectButton = document.querySelector('button#disconnectButton');
 
 disconnectButton.disabled = true;
-callButton.onclick = start_call;
+callButton.onclick = connect_call;
 disconnectButton.onclick = disconnect_call;
 
 const remoteVideo = document.getElementById('remoteVideo');
 
 
+let pc1;
+
+
+
+
 remoteVideo.addEventListener('loadedmetadata', function() {
   console.log(`Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px`);
+
 });
 
 
-let pc1;
 let localStream;
 
 
@@ -33,50 +38,80 @@ const offerOptions = {
 /*
  * This function is called first.
  */
-function start_call() {
+function connect_call() {
   callButton.disabled = true;
 
-  console.log('Starting call');
+  console.log('Connecting call');
 
   const configuration = {
+    bundlePolicy: 'balanced',
+
+    /* certificates */
+
+    iceCandidatePoolSize: 0,
+
     'iceServers': [
-      {
-        'url': 'stun:stun.l.google.com:19302'
-      }
+	  {
+		  'urls': 'stun:stun.l.google.com:19302'
+	  }
     ],
-    iceTransportPolicy: 'all'
+
+    iceTransportPolicy: 'all',
+
+    /* peerIdentity */
+
+    rtcpMuxPolicy: 'require',      // NOTE: deprecated
   };
 
   console.log('configuration: ', configuration);
 
+
   pc1 = new RTCPeerConnection(configuration);
+
   console.log('Created local peer connection object pc1');
+
+
+  var conf = pc1.getConfiguration();
+  console.log("current configuration: ", conf);
+
+
+
   pc1.onicecandidate = e => onIceCandidate(pc1, e);
   pc1.ontrack = gotRemoteStream;
 
   pc1.oniceconnectionstatechange = function(event) {
-    console.log(`ice state changed: ${pc1.iceConnectionState}`);
+    console.log("ice state changed: ${pc1.iceConnectionState}");
   };
 
   pc1.onsignalingstatechange = (event) => {
-    console.log("---- signalingstate: %s", pc1.signalingState);
+    if (pc1)
+      console.log("---- signalingstate: %s", pc1.signalingState);
   };
 
+  pc1.onconnectionstatechange = function(event) {
+    console.log(".... connectionState: %s", pc1.connectionState);
+  }
 
   console.log('Requesting local stream');
   navigator.mediaDevices
     .getUserMedia({
       audio: true,
-      video: { width:320, height:240, framerate:15 }
+      video: { width:640, height:480, framerate:30 }
     })
     .then(gotStream)
     .catch(e => {
-      alert(`getUserMedia() error: ${e.name}`);
+      alert("getUserMedia() error: ", e.name);
     });
 }
 
 
+/*
+ * MediaStream stream.
+ *
+ * A stream consists of several tracks such as video or audio tracks.
+ */
 function gotStream(stream) {
+
   disconnectButton.disabled = false;
 
   console.log('Received local stream');
@@ -88,7 +123,7 @@ function gotStream(stream) {
 
   console.log('audio tracks: ' + audioTracks.length);
   if (audioTracks.length > 0) {
-    console.log(`Using Audio device: ${audioTracks[0].label}`);
+    console.log("Using Audio device: '%s'", audioTracks[0].label);
   }
 
   localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
@@ -206,8 +241,6 @@ function gotRemoteStream(e) {
 
 
 function onIceCandidate(pc, event) {
-
-  console.log(`ICE candidate:\n${event.candidate ? event.candidate.candidate : '(null)'}`);
 
   if (event.candidate) {
 	    // Send the candidate to the remote peer
