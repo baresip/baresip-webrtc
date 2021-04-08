@@ -50,3 +50,18 @@ are VP8, H264.
                 (Audio,Video)
 ```                
                 
+
+
+
+## API Mapping
+
+
+WebRTC:                this:
+------                 ----
+
+MediaStream            n/a
+MediaStreamTrack       struct media_track
+RTCConfiguration       n/a
+RTCPeerConnection      struct rtcsession
+RTCSessionDescription  struct session_description
+RTCRtpTransceiver      struct stream
