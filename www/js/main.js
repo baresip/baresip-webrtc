@@ -25,9 +25,6 @@ remoteVideo.addEventListener('loadedmetadata', function() {
 
 
 const offerOptions = {
-	//  offerToReceiveAudio: 1,
-	//  offerToReceiveVideo: 1,
-
 	iceRestart: false,
 	voiceActivityDetection: true
 };
