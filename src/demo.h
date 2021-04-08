@@ -48,6 +48,7 @@ bool rtcsession_got_offer(const struct rtcsession *sess);
  */
 
 int load_file(struct mbuf *mb, const char *filename);
+const char *file_extension(const char *filename);
 
 
 /*

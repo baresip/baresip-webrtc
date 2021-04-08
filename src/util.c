@@ -13,6 +13,7 @@
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
+#include <string.h>
 #include <re.h>
 #include <baresip.h>
 #include "demo.h"
@@ -41,4 +42,19 @@ int load_file(struct mbuf *mb, const char *filename)
 	(void)close(fd);
 
 	return err;
+}
+
+
+const char *file_extension(const char *filename)
+{
+	const char *p;
+
+	if (!filename)
+		return NULL;
+
+	p = strrchr(filename, '.');
+	if (!p)
+		return NULL;
+
+	return p + 1;
 }

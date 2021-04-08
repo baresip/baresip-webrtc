@@ -38,6 +38,15 @@ static struct {
 } g;
 
 
+static const char *extension_to_mimetype(const char *ext)
+{
+	if (0 == str_casecmp(ext, "html")) return "text/html";
+	if (0 == str_casecmp(ext, "js"))   return "text/javascript";
+
+	return "application/octet-stream";  /* default */
+}
+
+
 static void reply_fmt(struct http_conn *conn, const char *ctype,
 		      const char *fmt, ...)
 {
@@ -292,51 +301,68 @@ out:
 }
 
 
+static void handle_get(struct http_conn *conn, const struct pl *path)
+{
+	const char *ext, *mime;
+	struct mbuf *mb;
+	char *buf = NULL;
+	int err;
+
+	mb = mbuf_alloc(8192);
+	if (!mb)
+		return;
+
+	err = re_sdprintf(&buf, "./www%r", path);
+	if (err)
+		goto out;
+
+	err = load_file(mb, buf);
+	if (err) {
+		info("demo: not found: %s\n", buf);
+		http_ereply(conn, 404, "Not Found");
+		goto out;
+	}
+
+	ext = file_extension(buf);
+	mime = extension_to_mimetype(ext);
+
+	info("demo: loaded file '%s', %zu bytes (%s)\n", buf, mb->end, mime);
+
+	http_reply(conn, 200, "OK",
+		   "Content-Type: %s;charset=UTF-8\r\n"
+		   "Content-Length: %zu\r\n"
+		   "Access-Control-Allow-Origin: *\r\n"
+		   "\r\n"
+		   "%b",
+		   mime,
+		   mb->end,
+		   mb->buf, mb->end);
+
+ out:
+	mem_deref(mb);
+	mem_deref(buf);
+}
+
+
 static void http_req_handler(struct http_conn *conn,
 			     const struct http_msg *msg, void *arg)
 {
 	struct pl path = PL("/index.html");
-	struct mbuf *mb;
-	char *buf = NULL;
 	int err = 0;
 	(void)arg;
 
 	info("demo: request: met=%r, path=%r, prm=%r\n",
 	     &msg->met, &msg->path, &msg->prm);
 
-	mb = mbuf_alloc(8192);
-	if (!mb)
-		return;
-
 	if (msg->path.l > 1)
 		path = msg->path;
 
 	if (0 == pl_strcasecmp(&msg->met, "GET")) {
 
-		err = re_sdprintf(&buf, "./www%r", &path);
-		if (err)
-			goto out;
-
-		err = load_file(mb, buf);
-		if (err) {
-			info("demo: not found: %s\n", buf);
-			http_ereply(conn, 404, "Not Found");
-			goto out;
-		}
-
-		info("demo: loaded file '%s', %zu bytes\n", buf, mb->end);
-
-		http_reply(conn, 200, "OK",
-			   "Content-Type: text/html;charset=UTF-8\r\n"
-			   "Content-Length: %zu\r\n"
-			   "Access-Control-Allow-Origin: *\r\n"
-			   "\r\n"
-			   "%b",
-			   mb->end,
-			   mb->buf, mb->end);
+		handle_get(conn, &path);
 	}
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
-		 0 == pl_strcasecmp(&msg->path, "/call")) {
+		 0 == pl_strcasecmp(&msg->path, "/connect")) {
 
 		/* TODO: generate a unique session id */
 
@@ -378,8 +404,6 @@ static void http_req_handler(struct http_conn *conn,
 	if (err)
 		http_ereply(conn, 500, "Server Error");
 
-	mem_deref(buf);
-	mem_deref(mb);
 }
 
 

@@ -466,11 +466,11 @@ int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
 
 	info("rtcsession: decode %s\n", offer ? "offer" : "answer");
 
-#if 1
-	re_printf("- - %s - -\n", offer ? "offer" : "answer");
-	re_printf("%b\n", (sdp)->buf, (sdp)->end);
-	re_printf("- - - - - - -\n");
-#endif
+	if (LEVEL_DEBUG == log_level_get()) {
+		info("- - %s - -\n", offer ? "offer" : "answer");
+		info("%b\n", (sdp)->buf, (sdp)->end);
+		info("- - - - - - -\n");
+	}
 
 	err = sdp_decode(sess->sdp, sdp, offer);
 	if (err) {
@@ -526,11 +526,11 @@ int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
 	if (err)
 		return err;
 
-#if 1
-	re_printf("- - %s - -\n", offer ? "offer" : "answer");
-	re_printf("%b\n", (*mb)->buf, (*mb)->end);
-	re_printf("- - - - - - -\n");
-#endif
+	if (LEVEL_DEBUG == log_level_get()) {
+		info("- - %s - -\n", offer ? "offer" : "answer");
+		info("%b\n", (*mb)->buf, (*mb)->end);
+		info("- - - - - - -\n");
+	}
 
 	sess->sdp_ok = true;
 

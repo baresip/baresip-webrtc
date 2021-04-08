@@ -7,17 +7,15 @@
 const audio = document.querySelector('audio#audio');
 const callButton = document.querySelector('button#callButton');
 const disconnectButton = document.querySelector('button#disconnectButton');
+const remoteVideo = document.getElementById('remoteVideo');
 
 disconnectButton.disabled = true;
 callButton.onclick = connect_call;
 disconnectButton.onclick = disconnect_call;
 
-const remoteVideo = document.getElementById('remoteVideo');
-
 
 let pc1;
-
-
+let localStream;  /* MediaStream */
 
 
 remoteVideo.addEventListener('loadedmetadata', function() {
@@ -26,12 +24,12 @@ remoteVideo.addEventListener('loadedmetadata', function() {
 });
 
 
-let localStream;
-
-
 const offerOptions = {
-  offerToReceiveAudio: 1,
-  offerToReceiveVideo: 1,
+	//  offerToReceiveAudio: 1,
+	//  offerToReceiveVideo: 1,
+
+	iceRestart: false,
+	voiceActivityDetection: true
 };
 
 
@@ -39,6 +37,7 @@ const offerOptions = {
  * This function is called first.
  */
 function connect_call() {
+
   callButton.disabled = true;
 
   console.log('Connecting call');
@@ -114,22 +113,33 @@ function gotStream(stream) {
 
   disconnectButton.disabled = false;
 
-  console.log('Received local stream');
+  console.log('Received local stream: id=%s', stream.id);
+  console.log('.... active=%s', stream.active);
+  console.log('.... id=%s', stream.id);
   console.log(stream)
 
+  // save the stream
   localStream = stream;
 
+  // type: MediaStreamTrack
   const audioTracks = localStream.getAudioTracks();
+  const videoTracks = localStream.getVideoTracks();
 
   console.log('audio tracks: ' + audioTracks.length);
+  console.log('video tracks: ' + videoTracks.length);
+
   if (audioTracks.length > 0) {
     console.log("Using Audio device: '%s'", audioTracks[0].label);
   }
+  if (videoTracks.length > 0) {
+    console.log("Using Video device: '%s'", videoTracks[0].label);
+  }
 
   localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
+
   console.log('Adding Local Stream to peer connection');
 
-  send_post_call();
+  send_post_connect();
 }
 
 
@@ -141,24 +151,20 @@ function onCreateSessionDescriptionError(error) {
 /*
  * Create a new call
  */
-function send_post_call() {
+function send_post_connect() {
   var xhr = new XMLHttpRequest();
+  const loc = self.location;
 
-  console.log('send post call: ' + self.location);
+  console.log("send post connect: " + loc);
 
-  xhr.open("POST", '' + self.location + 'call', true);
+  xhr.open("POST", '' + loc + 'connect', true);
 
   xhr.onreadystatechange = function() {
     if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
       var body = xhr.response;
 
-      if (1) {
-        pc1.createOffer(offerOptions)
-           .then(gotDescription1, onCreateSessionDescriptionError);
-      }
-      else {
-	      // todo: decode sdp and set remote description
-      }
+      pc1.createOffer(offerOptions)
+         .then(gotDescription, onCreateSessionDescriptionError);
     }
   }
 
@@ -196,8 +202,9 @@ function send_put_sdp(descr)
 /*
  * ${desc.sdp}
  */
-function gotDescription1(desc) {
-  console.log('set local description');
+function gotDescription(desc)
+{
+  console.log("got local description");
 
   pc1.setLocalDescription(desc)
     .then(() => {
@@ -206,7 +213,7 @@ function gotDescription1(desc) {
 
 
 function disconnect_call() {
-  console.log('Ending call');
+  console.log('Disconnecting call');
 
   localStream.getTracks().forEach(track => track.stop());
 
