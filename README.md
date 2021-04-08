@@ -56,12 +56,13 @@ are VP8, H264.
 ## API Mapping
 
 
-WebRTC:                this:
-------                 ----
+| WebRTC:               | this:                      |
+| --------------------- | -------------------------- |
+| MediaStream           | n/a                        |
+| MediaStreamTrack      | struct media_track         |
+| RTCConfiguration      | n/a                        |
+| RTCPeerConnection     | struct rtcsession          |
+| RTCSessionDescription | struct session_description |
+| RTCRtpTransceiver     | struct stream              |
 
-MediaStream            n/a
-MediaStreamTrack       struct media_track
-RTCConfiguration       n/a
-RTCPeerConnection      struct rtcsession
-RTCSessionDescription  struct session_description
-RTCRtpTransceiver      struct stream
+
