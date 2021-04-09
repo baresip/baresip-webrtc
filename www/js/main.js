@@ -18,9 +18,9 @@ let pc1;
 let localStream;  /* MediaStream */
 
 
-remoteVideo.addEventListener('loadedmetadata', function() {
-  console.log(`Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px`);
-
+remoteVideo.addEventListener('loadedmetadata', function()
+{
+	console.log("Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px");
 });
 
 
@@ -37,7 +37,7 @@ function connect_call()
 {
 	callButton.disabled = true;
 
-	console.log('Connecting call');
+	console.log("Connecting call");
 
 	const configuration = {
 		bundlePolicy: 'balanced',
@@ -59,23 +59,15 @@ function connect_call()
 		rtcpMuxPolicy: 'require',      // NOTE: deprecated
 	};
 
-	console.log('configuration: ', configuration);
-
-
 	pc1 = new RTCPeerConnection(configuration);
 
-	console.log('Created local peer connection object pc1');
-
-
-	var conf = pc1.getConfiguration();
-	console.log("current configuration: ", conf);
-
+	console.log("Created local peer connection object pc1");
 
 	pc1.onicecandidate = e => onIceCandidate(pc1, e);
 	pc1.ontrack = gotRemoteStream;
 
 	pc1.oniceconnectionstatechange = function(event) {
-		console.log("ice state changed: ${pc1.iceConnectionState}");
+		console.log("ice state changed: %s", pc1.iceConnectionState);
 	};
 
 	pc1.onsignalingstatechange = (event) => {
@@ -87,7 +79,7 @@ function connect_call()
 		console.log(".... connectionState: %s", pc1.connectionState);
 	}
 
-	console.log('Requesting local stream');
+	console.log("Requesting local stream");
 	navigator.mediaDevices
 		.getUserMedia({
 			audio: true,
@@ -109,20 +101,12 @@ function gotStream(stream)
 {
 	disconnectButton.disabled = false;
 
-	console.log('Received local stream: id=%s', stream.id);
-	console.log('.... active=%s', stream.active);
-	console.log('.... id=%s', stream.id);
-	console.log(stream)
-
-		// save the stream
-		localStream = stream;
+	// save the stream
+	localStream = stream;
 
 	// type: MediaStreamTrack
 	const audioTracks = localStream.getAudioTracks();
 	const videoTracks = localStream.getVideoTracks();
-
-	console.log('audio tracks: ' + audioTracks.length);
-	console.log('video tracks: ' + videoTracks.length);
 
 	if (audioTracks.length > 0) {
 		console.log("Using Audio device: '%s'", audioTracks[0].label);
@@ -133,15 +117,13 @@ function gotStream(stream)
 
 	localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
 
-	console.log('Adding Local Stream to peer connection');
-
 	send_post_connect();
 }
 
 
 function onCreateSessionDescriptionError(error)
 {
-	console.log(`Failed to create session description: ${error.toString()}`);
+	console.log("Failed to create session description: %s", error.toString());
 }
 
 
@@ -174,7 +156,7 @@ function send_put_sdp(descr)
 {
 	var xhr = new XMLHttpRequest();
 
-	console.log('send put sdp: ' + self.location);
+	console.log("send put sdp: " + self.location);
 
 	xhr.open("PUT", '' + self.location + 'sdp', true);
 
@@ -212,7 +194,7 @@ function gotDescription(desc)
 
 function disconnect_call()
 {
-	console.log('Disconnecting call');
+	console.log("Disconnecting call");
 
 	localStream.getTracks().forEach(track => track.stop());
 
@@ -231,17 +213,17 @@ function disconnect_call()
 
 function gotRemoteStream(e)
 {
-	console.log('got remote stream (track)');
+	console.log("got remote stream (track)");
 	console.log(e);
 
 	if (audio.srcObject !== e.streams[0]) {
 		audio.srcObject = e.streams[0];
-		console.log('Received remote stream');
+		console.log("Received remote stream");
 	}
 
 	if (remoteVideo.srcObject !== e.streams[0]) {
 		remoteVideo.srcObject = e.streams[0];
-		console.log('pc2 received remote stream');
+		console.log("received remote video stream");
 	}
 }
 
@@ -263,5 +245,5 @@ function onIceCandidate(pc, event)
 
 function onSetSessionDescriptionError(error)
 {
-	console.log(`Failed to set session description: ${error.toString()}`);
+	console.log("Failed to set session description: %s", error.toString());
 }
