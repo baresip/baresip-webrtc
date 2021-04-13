@@ -1,5 +1,5 @@
 /**
- * @file src/session.c  RTC Session
+ * @file src/peerconn.c  RTC Peer Connection
  *
  * Copyright (C) 2010 Alfred E. Heggestad
  */
