@@ -10,15 +10,6 @@
 #include "demo.h"
 
 
-/*
-  TODO:
-
-  ok - add support for video
-     - add support for multiple sessions
-     - convert HTTP content to JSON?
-     - add RTCPeerConnection.signalingState ?
- */
-
 enum {HTTP_PORT = 9000};
 
 
@@ -27,7 +18,7 @@ static struct stun_uri *stun_srv;
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
-static struct peer_connection *sess;
+static struct peer_connection *g_pc;
 static const struct mnat *mnat;
 static const struct menc *menc;
 
@@ -116,12 +107,12 @@ static void session_gather_handler(void *arg)
 	int err;
 	(void)arg;
 
-	send_offer = !peerconnection_got_offer(sess);
+	send_offer = !peerconnection_got_offer(g_pc);
 	type = send_offer ? "offer" : "answer";
 
 	info("demo: session gathered -- send %s\n", type);
 
-	err = peerconnection_encode_descr(sess, &mb_sdp, send_offer);
+	err = peerconnection_encode_descr(g_pc, &mb_sdp, send_offer);
 	if (err)
 		goto out;
 
@@ -131,7 +122,7 @@ static void session_gather_handler(void *arg)
 
 	if (!send_offer) {
 
-		err = peerconnection_start_ice(sess);
+		err = peerconnection_start_ice(g_pc);
 		if (err) {
 			warning("demo: failed to start ice (%m)\n", err);
 			goto out;
@@ -177,7 +168,7 @@ static void session_close_handler(int err, void *arg)
 	warning("demo: session closed (%m)\n", err);
 
 	/* todo: notify client that session was closed */
-	sess = mem_deref(sess);
+	g_pc = mem_deref(g_pc);
 }
 
 
@@ -192,38 +183,38 @@ static int create_session(struct mbuf *offer)
 
 	sa_set_str(&laddr, "127.0.0.1", 0);
 
-	if (sess) {
+	if (g_pc) {
 		err = EBUSY;
 		goto out;
 	}
 
 	/* create a new session object, send SDP to it */
-	err = peerconnection_create(&sess, config, &laddr,
-				offer, mnat, menc,
-				stun_srv,
-				g.stun_user, g.stun_pass,
-				session_gather_handler,
-				session_estab_handler,
-				session_close_handler, NULL);
+	err = peerconnection_create(&g_pc, config, &laddr,
+				    offer, mnat, menc,
+				    stun_srv,
+				    g.stun_user, g.stun_pass,
+				    session_gather_handler,
+				    session_estab_handler,
+				    session_close_handler, NULL);
 	if (err) {
 		warning("demo: session alloc failed (%m)\n", err);
 		goto out;
 	}
 
-	err = peerconnection_add_audio(sess, config, baresip_aucodecl());
+	err = peerconnection_add_audio(g_pc, config, baresip_aucodecl());
 	if (err) {
 		warning("demo: add_audio failed (%m)\n", err);
 		goto out;
 	}
 
-	err = peerconnection_add_video(sess, config, baresip_vidcodecl());
+	err = peerconnection_add_video(g_pc, config, baresip_vidcodecl());
 	if (err) {
 		warning("demo: add_video failed (%m)\n", err);
 		goto out;
 	}
 
 	if (offer) {
-		err = peerconnection_decode_descr(sess, offer, true);
+		err = peerconnection_decode_descr(g_pc, offer, true);
 		if (err) {
 			warning("demo: decode offer failed (%m)\n", err);
 			goto out;
@@ -232,7 +223,7 @@ static int create_session(struct mbuf *offer)
 
  out:
 	if (err)
-		sess = mem_deref(sess);
+		g_pc = mem_deref(g_pc);
 
 	return err;
 }
@@ -261,13 +252,13 @@ static int handle_put_sdp(const struct http_msg *msg)
 			}
 			else if (0 == str_casecmp(sd.type, "answer")) {
 
-				err = peerconnection_decode_descr(sess, sd.sdp,
+				err = peerconnection_decode_descr(g_pc, sd.sdp,
 							      false);
 				if (err) {
 					warning("decode error (%m)\n", err);
 				}
 
-				err = peerconnection_start_ice(sess);
+				err = peerconnection_start_ice(g_pc);
 				if (err) {
 					warning("demo: failed to start ice"
 						" (%m)\n", err);
@@ -388,7 +379,7 @@ static void http_req_handler(struct http_conn *conn,
 
 		info("demo: disconnect\n");
 
-		sess = mem_deref(sess);
+		g_pc = mem_deref(g_pc);
 
 		http_reply(conn, 200, "OK",
 			   "Content-Length: 0\r\n"
@@ -464,7 +455,7 @@ int demo_init(const char *ice_server,
 
 int demo_close(void)
 {
-	sess = mem_deref(sess);
+	g_pc = mem_deref(g_pc);
 	conn_pending = mem_deref(conn_pending);
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
