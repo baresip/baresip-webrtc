@@ -20,7 +20,8 @@ let localStream;  /* MediaStream */
 
 remoteVideo.addEventListener('loadedmetadata', function()
 {
-	console.log("Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px");
+	console.log("Remote video videoWidth: %spx,  videoHeight: %spx",
+		    this.videoWidth, this.videoHeight);
 });
 
 
@@ -61,7 +62,7 @@ function connect_call()
 
 	pc1 = new RTCPeerConnection(configuration);
 
-	console.log("Created local peer connection object pc1");
+	console.log("Created local peer connection");
 
 	pc1.onicecandidate = e => onIceCandidate(pc1, e);
 	pc1.ontrack = gotRemoteStream;
@@ -72,11 +73,11 @@ function connect_call()
 
 	pc1.onsignalingstatechange = (event) => {
 		if (pc1)
-			console.log("---- signalingstate: %s", pc1.signalingState);
+			console.log("signaling state: %s", pc1.signalingState);
 	};
 
 	pc1.onconnectionstatechange = function(event) {
-		console.log(".... connectionState: %s", pc1.connectionState);
+		console.log("connection state: %s", pc1.connectionState);
 	}
 
 	console.log("Requesting local stream");
@@ -171,7 +172,7 @@ function send_put_sdp(descr)
 
 			pc1.setRemoteDescription(descr).then(() => {
 				     console.log('set remote description -- success');
-			     }, onSetSessionDescriptionError);
+			}, onSetSessionDescriptionError);
 		}
 	}
 
@@ -184,11 +185,11 @@ function send_put_sdp(descr)
  */
 function gotDescription(desc)
 {
-	console.log("got local description");
+	console.log("got local description: %s", desc.type);
 
 	pc1.setLocalDescription(desc)
 		.then(() => {
-		      }, onSetSessionDescriptionError);
+		}, onSetSessionDescriptionError);
 }
 
 
@@ -211,18 +212,23 @@ function disconnect_call()
 }
 
 
-function gotRemoteStream(e)
+/*
+ * RTCTrackEvent event
+ */
+function gotRemoteStream(event)
 {
-	console.log("got remote stream (track)");
-	console.log(e);
+	const track = event.track;
 
-	if (audio.srcObject !== e.streams[0]) {
-		audio.srcObject = e.streams[0];
-		console.log("Received remote stream");
+	console.log("got remote track: kind=%s", track.kind);
+	//console.log(event);
+
+	if (audio.srcObject !== event.streams[0]) {
+		audio.srcObject = event.streams[0];
+		console.log("received remote audio stream");
 	}
 
-	if (remoteVideo.srcObject !== e.streams[0]) {
-		remoteVideo.srcObject = e.streams[0];
+	if (remoteVideo.srcObject !== event.streams[0]) {
+		remoteVideo.srcObject = event.streams[0];
 		console.log("received remote video stream");
 	}
 }
@@ -231,7 +237,7 @@ function gotRemoteStream(e)
 function onIceCandidate(pc, event)
 {
 	if (event.candidate) {
-		// Send the candidate to the remote peer
+
 	} else {
 		// All ICE candidates have been sent
 
