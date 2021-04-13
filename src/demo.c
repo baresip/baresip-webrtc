@@ -27,7 +27,7 @@ static struct stun_uri *stun_srv;
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
-static struct rtcsession *sess;
+static struct peer_connection *sess;
 static const struct mnat *mnat;
 static const struct menc *menc;
 
@@ -116,12 +116,12 @@ static void session_gather_handler(void *arg)
 	int err;
 	(void)arg;
 
-	send_offer = !rtcsession_got_offer(sess);
+	send_offer = !peerconnection_got_offer(sess);
 	type = send_offer ? "offer" : "answer";
 
 	info("demo: session gathered -- send %s\n", type);
 
-	err = rtcsession_encode_descr(sess, &mb_sdp, send_offer);
+	err = peerconnection_encode_descr(sess, &mb_sdp, send_offer);
 	if (err)
 		goto out;
 
@@ -131,7 +131,7 @@ static void session_gather_handler(void *arg)
 
 	if (!send_offer) {
 
-		err = rtcsession_start_ice(sess);
+		err = peerconnection_start_ice(sess);
 		if (err) {
 			warning("demo: failed to start ice (%m)\n", err);
 			goto out;
@@ -198,7 +198,7 @@ static int create_session(struct mbuf *offer)
 	}
 
 	/* create a new session object, send SDP to it */
-	err = rtcsession_create(&sess, config, &laddr,
+	err = peerconnection_create(&sess, config, &laddr,
 				offer, mnat, menc,
 				stun_srv,
 				g.stun_user, g.stun_pass,
@@ -210,20 +210,20 @@ static int create_session(struct mbuf *offer)
 		goto out;
 	}
 
-	err = rtcsession_add_audio(sess, config, baresip_aucodecl());
+	err = peerconnection_add_audio(sess, config, baresip_aucodecl());
 	if (err) {
 		warning("demo: add_audio failed (%m)\n", err);
 		goto out;
 	}
 
-	err = rtcsession_add_video(sess, config, baresip_vidcodecl());
+	err = peerconnection_add_video(sess, config, baresip_vidcodecl());
 	if (err) {
 		warning("demo: add_video failed (%m)\n", err);
 		goto out;
 	}
 
 	if (offer) {
-		err = rtcsession_decode_descr(sess, offer, true);
+		err = peerconnection_decode_descr(sess, offer, true);
 		if (err) {
 			warning("demo: decode offer failed (%m)\n", err);
 			goto out;
@@ -261,13 +261,13 @@ static int handle_put_sdp(const struct http_msg *msg)
 			}
 			else if (0 == str_casecmp(sd.type, "answer")) {
 
-				err = rtcsession_decode_descr(sess, sd.sdp,
+				err = peerconnection_decode_descr(sess, sd.sdp,
 							      false);
 				if (err) {
 					warning("decode error (%m)\n", err);
 				}
 
-				err = rtcsession_start_ice(sess);
+				err = peerconnection_start_ice(sess);
 				if (err) {
 					warning("demo: failed to start ice"
 						" (%m)\n", err);

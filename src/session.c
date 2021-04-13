@@ -10,7 +10,7 @@
 #include "demo.h"
 
 
-struct rtcsession {
+struct peer_connection {
 	struct stream_param stream_prm;
 	struct list streaml;
 	struct list medial;
@@ -22,9 +22,9 @@ struct rtcsession {
 	struct media_ctx *ctx;
 	char cname[16];
 	bool got_offer;
-	rtcsession_gather_h *gatherh;
-	rtcsession_estab_h *estabh;
-	rtcsession_close_h *closeh;
+	peerconnection_gather_h *gatherh;
+	peerconnection_estab_h *estabh;
+	peerconnection_close_h *closeh;
 	void *arg;
 
 	/* steps: */
@@ -46,13 +46,13 @@ static struct stream *media_get_stream(const struct media_track *media)
 
 static void destructor(void *data)
 {
-	struct rtcsession *sess = data;
+	struct peer_connection *sess = data;
 	struct le *le;
 	size_t i;
 
 	info("rtcsession: destroyed\n");
 
-	info("*** RTCSession summary ***\n");
+	info("*** RTCPeerConnection summary ***\n");
 
 	info("steps:\n");
 	info(".. gather:   %d\n", sess->gather_ok);
@@ -114,7 +114,7 @@ static void destructor(void *data)
 }
 
 
-static struct media_track *lookup_media(struct rtcsession *sess,
+static struct media_track *lookup_media(struct peer_connection *sess,
 				  struct stream *strm)
 {
 	struct le *le;
@@ -130,9 +130,9 @@ static struct media_track *lookup_media(struct rtcsession *sess,
 }
 
 
-static void session_close(struct rtcsession *sess, int err)
+static void session_close(struct peer_connection *sess, int err)
 {
-	rtcsession_close_h *closeh = sess->closeh;
+	peerconnection_close_h *closeh = sess->closeh;
 
 	sess->closeh = NULL;
 
@@ -143,7 +143,7 @@ static void session_close(struct rtcsession *sess, int err)
 
 static void audio_event_handler(int key, bool end, void *arg)
 {
-	struct rtcsession *sess = arg;
+	struct peer_connection *sess = arg;
 	(void)sess;
 	(void)end;
 
@@ -153,7 +153,7 @@ static void audio_event_handler(int key, bool end, void *arg)
 
 static void audio_err_handler(int err, const char *str, void *arg)
 {
-	struct rtcsession *sess = arg;
+	struct peer_connection *sess = arg;
 
 	warning("rtcsession: audio error: %m (%s)\n", err, str);
 
@@ -163,7 +163,7 @@ static void audio_err_handler(int err, const char *str, void *arg)
 
 static void video_err_handler(int err, const char *str, void *arg)
 {
-	struct rtcsession *sess = arg;
+	struct peer_connection *sess = arg;
 
 	warning("rtcsession: video error: %m (%s)\n", err, str);
 
@@ -174,7 +174,7 @@ static void video_err_handler(int err, const char *str, void *arg)
 static void mnat_estab_handler(int err, uint16_t scode, const char *reason,
 			       void *arg)
 {
-	struct rtcsession *sess = arg;
+	struct peer_connection *sess = arg;
 
 	if (err) {
 		warning("rtcsession: medianat failed: %m\n", err);
@@ -200,7 +200,7 @@ static void menc_event_handler(enum menc_event event,
 			       const char *prm, struct stream *strm,
 			       void *arg)
 {
-	struct rtcsession *sess = arg;
+	struct peer_connection *sess = arg;
 	struct media_track *media;
 
 	media = lookup_media(sess, strm);
@@ -228,7 +228,7 @@ static void menc_event_handler(enum menc_event event,
 
 static void menc_error_handler(int err, void *arg)
 {
-	struct rtcsession *sess = arg;
+	struct peer_connection *sess = arg;
 
 	warning("rtcsession: mediaenc error: %m\n", err);
 
@@ -248,7 +248,7 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 
 	err = stream_start_mediaenc(strm);
 	if (err) {
-		session_close(media->sess, err);
+		session_close(media->pc, err);
 	}
 }
 
@@ -281,21 +281,22 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 	warning("rtcsession: '%s' stream error (%m)\n",
 		stream_name(strm), err);
 
-	session_close(media->sess, err);
+	session_close(media->pc, err);
 }
 
 
-int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
-		      const struct sa *laddr,
-		      struct mbuf *offer,
-		      const struct mnat *mnat, const struct menc *menc,
-		      struct stun_uri *stun_srv,
-		      const char *stun_user, const char *stun_pass,
-		      rtcsession_gather_h *gatherh,
-		      rtcsession_estab_h *estabh,
-		      rtcsession_close_h *closeh, void *arg)
+int peerconnection_create(struct peer_connection **sessp,
+			  const struct config *cfg,
+			  const struct sa *laddr,
+			  struct mbuf *offer,
+			  const struct mnat *mnat, const struct menc *menc,
+			  struct stun_uri *stun_srv,
+			  const char *stun_user, const char *stun_pass,
+			  peerconnection_gather_h *gatherh,
+			  peerconnection_estab_h *estabh,
+			  peerconnection_close_h *closeh, void *arg)
 {
-	struct rtcsession *sess;
+	struct peer_connection *sess;
 	bool got_offer = offer != NULL;
 	int err;
 
@@ -373,7 +374,7 @@ int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
 
 
 /* todo: add per-audio configuration */
-int rtcsession_add_audio(struct rtcsession *sess,
+int peerconnection_add_audio(struct peer_connection *sess,
 			 const struct config *cfg,
 			 struct list *aucodecl)
 {
@@ -414,7 +415,7 @@ int rtcsession_add_audio(struct rtcsession *sess,
 }
 
 
-int rtcsession_add_video(struct rtcsession *sess,
+int peerconnection_add_video(struct peer_connection *sess,
 			 const struct config *cfg,
 			 struct list *vidcodecl)
 {
@@ -455,7 +456,7 @@ int rtcsession_add_video(struct rtcsession *sess,
 }
 
 
-int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
+int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 			    bool offer)
 {
 	struct le *le;
@@ -507,7 +508,7 @@ int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
 }
 
 
-int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
+int peerconnection_encode_descr(struct peer_connection *sess, struct mbuf **mb,
 			    bool offer)
 {
 	int err;
@@ -538,7 +539,7 @@ int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
 }
 
 
-int rtcsession_start_ice(struct rtcsession *sess)
+int peerconnection_start_ice(struct peer_connection *sess)
 {
 	int err;
 
@@ -565,7 +566,7 @@ int rtcsession_start_ice(struct rtcsession *sess)
 
 
 /* todo: replace with signalingstate */
-bool rtcsession_got_offer(const struct rtcsession *sess)
+bool peerconnection_got_offer(const struct peer_connection *sess)
 {
 	return sess ? sess->got_offer : false;
 }

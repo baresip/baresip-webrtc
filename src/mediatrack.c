@@ -13,7 +13,8 @@ static void destructor(void *data)
 }
 
 
-struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
+struct media_track *media_track_add(struct list *lst,
+				    struct peer_connection *pc,
 				    enum media_kind kind)
 {
 	struct media_track *media;
@@ -23,7 +24,7 @@ struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
 		return NULL;
 
 	media->kind = kind;
-	media->sess = sess;
+	media->pc = pc;
 
 	list_append(lst, &media->le, media);
 

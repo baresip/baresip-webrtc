@@ -6,41 +6,49 @@
 
 
 /*
- * RTC Session
- *
  * NOTE: API under development
  */
 
+
 struct stream;
 struct media_track;
-struct rtcsession;
 
-typedef void (rtcsession_gather_h)(void *arg);
-typedef void (rtcsession_estab_h)(struct media_track *media,
-				  void *arg);
-typedef void (rtcsession_close_h)(int err, void *arg);
 
-int rtcsession_create(struct rtcsession **sessp, const struct config *cfg,
-		      const struct sa *laddr,
-		      struct mbuf *offer,
-		      const struct mnat *mnat, const struct menc *menc,
-		      struct stun_uri *stun_srv,
-		      const char *stun_user, const char *stun_pass,
-		      rtcsession_gather_h *gatherh,
-		      rtcsession_estab_h,
-		      rtcsession_close_h *closeh, void *arg);
-int rtcsession_add_audio(struct rtcsession *sess,
+/*
+ * RTCPeerConnection
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection
+ */
+
+struct peer_connection;
+
+typedef void (peerconnection_gather_h)(void *arg);
+typedef void (peerconnection_estab_h)(struct media_track *media,
+				      void *arg);
+typedef void (peerconnection_close_h)(int err, void *arg);
+
+int peerconnection_create(struct peer_connection **pcp,
+			  const struct config *cfg,
+			  const struct sa *laddr,
+			  struct mbuf *offer,
+			  const struct mnat *mnat, const struct menc *menc,
+			  struct stun_uri *stun_srv,
+			  const char *stun_user, const char *stun_pass,
+			  peerconnection_gather_h *gatherh,
+			  peerconnection_estab_h,
+			  peerconnection_close_h *closeh, void *arg);
+int peerconnection_add_audio(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *aucodecl);
-int rtcsession_add_video(struct rtcsession *sess,
+int peerconnection_add_video(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *vidcodecl);
-int rtcsession_decode_descr(struct rtcsession *sess, struct mbuf *sdp,
+int peerconnection_decode_descr(struct peer_connection *pc, struct mbuf *sdp,
 			    bool offer);
-int rtcsession_encode_descr(struct rtcsession *sess, struct mbuf **mb,
+int peerconnection_encode_descr(struct peer_connection *pc, struct mbuf **mb,
 			    bool offer);
-int rtcsession_start_ice(struct rtcsession *sess);
-bool rtcsession_got_offer(const struct rtcsession *sess);
+int peerconnection_start_ice(struct peer_connection *pc);
+bool peerconnection_got_offer(const struct peer_connection *pc);
 
 
 /*
@@ -113,14 +121,15 @@ struct media_track {
 		void *p;
 	} u;
 
-	struct rtcsession *sess;  /* pointer to parent */
+	struct peer_connection *pc;  /* pointer to parent */
 	bool ice_conn;
 	bool dtls_ok;
 	bool rtp;
 	bool rtcp;
 };
 
-struct media_track *media_track_add(struct list *lst, struct rtcsession *sess,
+struct media_track *media_track_add(struct list *lst,
+				    struct peer_connection *pc,
 				    enum media_kind kind);
 int  mediatrack_start_audio(struct media_track *media);
 int  mediatrack_start_video(struct media_track *media);
