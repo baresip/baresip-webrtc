@@ -130,7 +130,7 @@ static struct media_track *lookup_media(struct peer_connection *sess,
 }
 
 
-static void peerconnection_close(struct peer_connection *sess, int err)
+static void pc_close(struct peer_connection *sess, int err)
 {
 	peerconnection_close_h *closeh = sess->closeh;
 
@@ -157,7 +157,7 @@ static void audio_err_handler(int err, const char *str, void *arg)
 
 	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
-	peerconnection_close(sess, err);
+	pc_close(sess, err);
 }
 
 
@@ -167,7 +167,7 @@ static void video_err_handler(int err, const char *str, void *arg)
 
 	warning("peerconnection: video error: %m (%s)\n", err, str);
 
-	peerconnection_close(sess, err);
+	pc_close(sess, err);
 }
 
 
@@ -178,13 +178,13 @@ static void mnat_estab_handler(int err, uint16_t scode, const char *reason,
 
 	if (err) {
 		warning("peerconnection: medianat failed: %m\n", err);
-		peerconnection_close(sess, err);
+		pc_close(sess, err);
 		return;
 	}
 	else if (scode) {
 		warning("peerconnection: medianat failed: %u %s\n",
 			scode, reason);
-		peerconnection_close(sess, EPROTO);
+		pc_close(sess, EPROTO);
 		return;
 	}
 
@@ -249,7 +249,7 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 
 	err = stream_start_mediaenc(strm);
 	if (err) {
-		peerconnection_close(media->pc, err);
+		pc_close(media->pc, err);
 	}
 }
 
@@ -282,7 +282,7 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 	warning("peerconnection: '%s' stream error (%m)\n",
 		stream_name(strm), err);
 
-	peerconnection_close(media->pc, err);
+	pc_close(media->pc, err);
 }
 
 
@@ -571,4 +571,14 @@ int peerconnection_start_ice(struct peer_connection *sess)
 bool peerconnection_got_offer(const struct peer_connection *sess)
 {
 	return sess ? sess->got_offer : false;
+}
+
+
+void peerconnection_close(struct peer_connection *pc)
+{
+	if (!pc)
+		return;
+
+	pc->closeh = NULL;
+	pc->mnats = mem_deref(pc->mnats);
 }

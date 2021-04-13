@@ -49,6 +49,7 @@ int peerconnection_encode_descr(struct peer_connection *pc, struct mbuf **mb,
 			    bool offer);
 int peerconnection_start_ice(struct peer_connection *pc);
 bool peerconnection_got_offer(const struct peer_connection *pc);
+void peerconnection_close(struct peer_connection *pc);
 
 
 /*
