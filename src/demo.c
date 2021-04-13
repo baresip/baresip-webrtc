@@ -99,7 +99,7 @@ static int reply_descr(const char *type, struct mbuf *mb_sdp)
 }
 
 
-static void session_gather_handler(void *arg)
+static void peerconnection_gather_handler(void *arg)
 {
 	struct mbuf *mb_sdp = NULL;
 	const char *type;
@@ -134,7 +134,7 @@ static void session_gather_handler(void *arg)
 }
 
 
-static void session_estab_handler(struct media_track *media, void *arg)
+static void peerconnection_estab_handler(struct media_track *media, void *arg)
 {
 	int err;
 
@@ -161,7 +161,7 @@ static void session_estab_handler(struct media_track *media, void *arg)
 }
 
 
-static void session_close_handler(int err, void *arg)
+static void peerconnection_close_handler(int err, void *arg)
 {
 	(void)arg;
 
@@ -193,9 +193,9 @@ static int create_session(struct mbuf *offer)
 				    offer, mnat, menc,
 				    stun_srv,
 				    g.stun_user, g.stun_pass,
-				    session_gather_handler,
-				    session_estab_handler,
-				    session_close_handler, NULL);
+				    peerconnection_gather_handler,
+				    peerconnection_estab_handler,
+				    peerconnection_close_handler, NULL);
 	if (err) {
 		warning("demo: session alloc failed (%m)\n", err);
 		goto out;

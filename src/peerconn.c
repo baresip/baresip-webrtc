@@ -50,7 +50,7 @@ static void destructor(void *data)
 	struct le *le;
 	size_t i;
 
-	info("rtcsession: destroyed\n");
+	info("peerconnection: destroyed\n");
 
 	info("*** RTCPeerConnection summary ***\n");
 
@@ -130,7 +130,7 @@ static struct media_track *lookup_media(struct peer_connection *sess,
 }
 
 
-static void session_close(struct peer_connection *sess, int err)
+static void peerconnection_close(struct peer_connection *sess, int err)
 {
 	peerconnection_close_h *closeh = sess->closeh;
 
@@ -147,7 +147,7 @@ static void audio_event_handler(int key, bool end, void *arg)
 	(void)sess;
 	(void)end;
 
-	info("rtcsession: recv DTMF event: key=%d ('%c')\n", key, key);
+	info("peerconnection: recv DTMF event: key=%d ('%c')\n", key, key);
 }
 
 
@@ -155,9 +155,9 @@ static void audio_err_handler(int err, const char *str, void *arg)
 {
 	struct peer_connection *sess = arg;
 
-	warning("rtcsession: audio error: %m (%s)\n", err, str);
+	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
-	session_close(sess, err);
+	peerconnection_close(sess, err);
 }
 
 
@@ -165,9 +165,9 @@ static void video_err_handler(int err, const char *str, void *arg)
 {
 	struct peer_connection *sess = arg;
 
-	warning("rtcsession: video error: %m (%s)\n", err, str);
+	warning("peerconnection: video error: %m (%s)\n", err, str);
 
-	session_close(sess, err);
+	peerconnection_close(sess, err);
 }
 
 
@@ -177,17 +177,18 @@ static void mnat_estab_handler(int err, uint16_t scode, const char *reason,
 	struct peer_connection *sess = arg;
 
 	if (err) {
-		warning("rtcsession: medianat failed: %m\n", err);
-		session_close(sess, err);
+		warning("peerconnection: medianat failed: %m\n", err);
+		peerconnection_close(sess, err);
 		return;
 	}
 	else if (scode) {
-		warning("rtcsession: medianat failed: %u %s\n", scode, reason);
-		session_close(sess, EPROTO);
+		warning("peerconnection: medianat failed: %u %s\n",
+			scode, reason);
+		peerconnection_close(sess, EPROTO);
 		return;
 	}
 
-	info("rtcsession: medianat established/gathered (all streams)\n");
+	info("peerconnection: medianat established/gathered (all streams)\n");
 
 	sess->gather_ok = true;
 
@@ -205,7 +206,7 @@ static void menc_event_handler(enum menc_event event,
 
 	media = lookup_media(sess, strm);
 
-	info("rtcsession: mediaenc event '%s' (%s)\n",
+	info("peerconnection: mediaenc event '%s' (%s)\n",
 	     menc_event_name(event), prm);
 
 	switch (event) {
@@ -230,7 +231,7 @@ static void menc_error_handler(int err, void *arg)
 {
 	struct peer_connection *sess = arg;
 
-	warning("rtcsession: mediaenc error: %m\n", err);
+	warning("peerconnection: mediaenc error: %m\n", err);
 
 	if (sess->closeh)
 		sess->closeh(err, sess->arg);
@@ -242,13 +243,13 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 	struct media_track *media = arg;
 	int err;
 
-	info("rtcsession: ice connected (%s)\n", stream_name(strm));
+	info("peerconnection: ice connected (%s)\n", stream_name(strm));
 
 	media->ice_conn = true;
 
 	err = stream_start_mediaenc(strm);
 	if (err) {
-		session_close(media->pc, err);
+		peerconnection_close(media->pc, err);
 	}
 }
 
@@ -257,7 +258,7 @@ static void rtpestab_handler(struct stream *strm, void *arg)
 {
 	struct media_track *media = arg;
 
-	info("rtcsession: rtp established (%s)\n", stream_name(strm));
+	info("peerconnection: rtp established (%s)\n", stream_name(strm));
 
 	media->rtp = true;
 }
@@ -278,10 +279,10 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 {
 	struct media_track *media = arg;
 
-	warning("rtcsession: '%s' stream error (%m)\n",
+	warning("peerconnection: '%s' stream error (%m)\n",
 		stream_name(strm), err);
 
-	session_close(media->pc, err);
+	peerconnection_close(media->pc, err);
 }
 
 
@@ -306,7 +307,7 @@ int peerconnection_create(struct peer_connection **sessp,
 	if (!mnat || !menc)
 		return EINVAL;
 
-	info("rtcsession: create session, laddr = %j\n", laddr);
+	info("peerconnection: create: laddr = %j\n", laddr);
 
 	sess = mem_zalloc(sizeof(*sess), destructor);
 	if (!sess)
@@ -325,7 +326,7 @@ int peerconnection_create(struct peer_connection **sessp,
 
 	if (mnat->sessh) {
 
-		info("rtcsession: using mnat '%s'\n", mnat->id);
+		info("peerconnection: using mnat '%s'\n", mnat->id);
 
 		sess->mnat = mnat;
 
@@ -337,13 +338,13 @@ int peerconnection_create(struct peer_connection **sessp,
 				  sess->sdp, !got_offer,
 				  mnat_estab_handler, sess);
 		if (err) {
-			warning("rtcsession: medianat session: %m\n", err);
+			warning("peerconnection: medianat session: %m\n", err);
 			goto out;
 		}
 	}
 
 	if (menc->sessh) {
-		info("rtcsession: using menc '%s'\n", menc->id);
+		info("peerconnection: using menc '%s'\n", menc->id);
 
 		sess->menc = menc;
 
@@ -351,7 +352,7 @@ int peerconnection_create(struct peer_connection **sessp,
 				  menc_event_handler,
 				  menc_error_handler, sess);
 		if (err) {
-			warning("rtcsession: mediaenc session: %m\n", err);
+			warning("peerconnection: mediaenc session: %m\n", err);
 			goto out;
 		}
 	}
@@ -385,7 +386,7 @@ int peerconnection_add_audio(struct peer_connection *sess,
 	if (!sess || !cfg || !aucodecl)
 		return EINVAL;
 
-	info("rtcsession: add audio (codecs=%u)\n", list_count(aucodecl));
+	info("peerconnection: add audio (codecs=%u)\n", list_count(aucodecl));
 
 	media = media_track_add(&sess->medial, sess, MEDIA_KIND_AUDIO);
 
@@ -398,7 +399,7 @@ int peerconnection_add_audio(struct peer_connection *sess,
 			  audio_event_handler, NULL,
 			  audio_err_handler, sess);
 	if (err) {
-		warning("rtcsession: audio alloc failed (%m)\n", err);
+		warning("peerconnection: audio alloc failed (%m)\n", err);
 		return err;
 	}
 
@@ -426,7 +427,7 @@ int peerconnection_add_video(struct peer_connection *sess,
 	if (!sess || !cfg || !vidcodecl)
 		return EINVAL;
 
-	info("rtcsession: add video (codecs=%u)\n", list_count(vidcodecl));
+	info("peerconnection: add video (codecs=%u)\n", list_count(vidcodecl));
 
 	media = media_track_add(&sess->medial, sess, MEDIA_KIND_VIDEO);
 
@@ -441,7 +442,7 @@ int peerconnection_add_video(struct peer_connection *sess,
 			  !sess->got_offer,
 			  video_err_handler, sess);
 	if (err) {
-		warning("rtcsession: video alloc failed (%m)\n", err);
+		warning("peerconnection: video alloc failed (%m)\n", err);
 		return err;
 	}
 
@@ -465,7 +466,7 @@ int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 	if (!sess || !sdp)
 		return EINVAL;
 
-	info("rtcsession: decode %s\n", offer ? "offer" : "answer");
+	info("peerconnection: decode %s\n", offer ? "offer" : "answer");
 
 	if (LEVEL_DEBUG == log_level_get()) {
 		info("- - %s - -\n", offer ? "offer" : "answer");
@@ -475,7 +476,7 @@ int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 
 	err = sdp_decode(sess->sdp, sdp, offer);
 	if (err) {
-		warning("rtcsession: sdp decode failed (%m)\n", err);
+		warning("peerconnection: sdp decode failed (%m)\n", err);
 		return err;
 	}
 
@@ -517,11 +518,11 @@ int peerconnection_encode_descr(struct peer_connection *sess, struct mbuf **mb,
 		return EINVAL;
 
 	if (!sess->gather_ok) {
-		warning("rtcsession: sdp: ice not gathered\n");
+		warning("peerconnection: sdp: ice not gathered\n");
 		return EPROTO;
 	}
 
-	info("rtcsession: encode %s\n", offer ? "offer" : "answer");
+	info("peerconnection: encode %s\n", offer ? "offer" : "answer");
 
 	err = sdp_encode(mb, sess->sdp, offer);
 	if (err)
@@ -546,17 +547,18 @@ int peerconnection_start_ice(struct peer_connection *sess)
 	if (!sess)
 		return EINVAL;
 
-	info(".. rtcsession: start ice\n");
+	info(".. peerconnection: start ice\n");
 
 	if (!sess->sdp_ok) {
-		warning("rtcsession: ice: sdp not ready\n");
+		warning("peerconnection: ice: sdp not ready\n");
 		return EPROTO;
 	}
 
 	if (sess->mnat->updateh && sess->mnats) {
 		err = sess->mnat->updateh(sess->mnats);
 		if (err) {
-			warning("rtcsession: mnat update failed (%m)\n", err);
+			warning("peerconnection: mnat update failed (%m)\n",
+				err);
 			return err;
 		}
 	}
