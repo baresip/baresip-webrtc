@@ -5,16 +5,16 @@
 'use strict';
 
 const audio = document.querySelector('audio#audio');
-const callButton = document.querySelector('button#callButton');
+const connectButton = document.querySelector('button#connectButton');
 const disconnectButton = document.querySelector('button#disconnectButton');
 const remoteVideo = document.getElementById('remoteVideo');
 
 disconnectButton.disabled = true;
-callButton.onclick = connect_call;
+connectButton.onclick = connect_call;
 disconnectButton.onclick = disconnect_call;
 
 
-let pc1;
+let pc;           /* PeerConnection */
 let localStream;  /* MediaStream */
 
 
@@ -36,7 +36,7 @@ const offerOptions = {
  */
 function connect_call()
 {
-	callButton.disabled = true;
+	connectButton.disabled = true;
 
 	console.log("Connecting call");
 
@@ -60,24 +60,24 @@ function connect_call()
 		rtcpMuxPolicy: 'require',      // NOTE: deprecated
 	};
 
-	pc1 = new RTCPeerConnection(configuration);
+	pc = new RTCPeerConnection(configuration);
 
 	console.log("Created local peer connection");
 
-	pc1.onicecandidate = e => onIceCandidate(pc1, e);
-	pc1.ontrack = gotRemoteStream;
+	pc.onicecandidate = e => onIceCandidate(pc, e);
+	pc.ontrack = gotRemoteStream;
 
-	pc1.oniceconnectionstatechange = function(event) {
-		console.log("ice state changed: %s", pc1.iceConnectionState);
+	pc.oniceconnectionstatechange = function(event) {
+		console.log("ice state changed: %s", pc.iceConnectionState);
 	};
 
-	pc1.onsignalingstatechange = (event) => {
-		if (pc1)
-			console.log("signaling state: %s", pc1.signalingState);
+	pc.onsignalingstatechange = (event) => {
+		if (pc)
+			console.log("signaling state: %s", pc.signalingState);
 	};
 
-	pc1.onconnectionstatechange = function(event) {
-		console.log("connection state: %s", pc1.connectionState);
+	pc.onconnectionstatechange = function(event) {
+		console.log("connection state: %s", pc.connectionState);
 	}
 
 	console.log("Requesting local stream");
@@ -116,7 +116,7 @@ function gotStream(stream)
 		console.log("Using Video device: '%s'", videoTracks[0].label);
 	}
 
-	localStream.getTracks().forEach(track => pc1.addTrack(track, localStream));
+	localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
 	send_post_connect();
 }
@@ -144,7 +144,7 @@ function send_post_connect()
 		if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
 			var body = xhr.response;
 
-			pc1.createOffer(offerOptions)
+			pc.createOffer(offerOptions)
 			.then(gotDescription, onCreateSessionDescriptionError);
 		}
 	}
@@ -170,7 +170,7 @@ function send_put_sdp(descr)
 
 			console.log("remote description: type=%s", descr.type);
 
-			pc1.setRemoteDescription(descr).then(() => {
+			pc.setRemoteDescription(descr).then(() => {
 				     console.log('set remote description -- success');
 			}, onSetSessionDescriptionError);
 		}
@@ -187,7 +187,7 @@ function gotDescription(desc)
 {
 	console.log("got local description: %s", desc.type);
 
-	pc1.setLocalDescription(desc)
+	pc.setLocalDescription(desc)
 		.then(() => {
 		}, onSetSessionDescriptionError);
 }
@@ -199,11 +199,11 @@ function disconnect_call()
 
 	localStream.getTracks().forEach(track => track.stop());
 
-	pc1.close();
-	pc1 = null;
+	pc.close();
+	pc = null;
 
 	disconnectButton.disabled = true;
-	callButton.disabled = false;
+	connectButton.disabled = false;
 
 	// send a message to the server
 	var xhr = new XMLHttpRequest();
