@@ -112,7 +112,10 @@ static void peerconnection_gather_handler(void *arg)
 
 	info("demo: session gathered -- send %s\n", type);
 
-	err = peerconnection_encode_descr(g_pc, &mb_sdp, send_offer);
+	if (send_offer)
+		err = peerconnection_create_offer(g_pc, &mb_sdp);
+	else
+		err = peerconnection_create_answer(g_pc, &mb_sdp);
 	if (err)
 		goto out;
 

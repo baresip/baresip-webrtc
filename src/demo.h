@@ -45,8 +45,10 @@ int peerconnection_add_video(struct peer_connection *pc,
 			 struct list *vidcodecl);
 int peerconnection_decode_descr(struct peer_connection *pc, struct mbuf *sdp,
 			    bool offer);
-int peerconnection_encode_descr(struct peer_connection *pc, struct mbuf **mb,
-			    bool offer);
+int peerconnection_create_offer(struct peer_connection *sess,
+				struct mbuf **mb);
+int peerconnection_create_answer(struct peer_connection *sess,
+				 struct mbuf **mb);
 int peerconnection_start_ice(struct peer_connection *pc);
 bool peerconnection_got_offer(const struct peer_connection *pc);
 void peerconnection_close(struct peer_connection *pc);

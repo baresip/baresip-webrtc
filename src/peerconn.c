@@ -509,8 +509,7 @@ int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 }
 
 
-int peerconnection_encode_descr(struct peer_connection *sess, struct mbuf **mb,
-			    bool offer)
+int peerconnection_create_offer(struct peer_connection *sess, struct mbuf **mb)
 {
 	int err;
 
@@ -522,14 +521,45 @@ int peerconnection_encode_descr(struct peer_connection *sess, struct mbuf **mb,
 		return EPROTO;
 	}
 
-	info("peerconnection: encode %s\n", offer ? "offer" : "answer");
+	info("peerconnection: create offer\n");
 
-	err = sdp_encode(mb, sess->sdp, offer);
+	err = sdp_encode(mb, sess->sdp, true);
 	if (err)
 		return err;
 
 	if (LEVEL_DEBUG == log_level_get()) {
-		info("- - %s - -\n", offer ? "offer" : "answer");
+		info("- - offer - -\n");
+		info("%b\n", (*mb)->buf, (*mb)->end);
+		info("- - - - - - -\n");
+	}
+
+	sess->sdp_ok = true;
+
+	return 0;
+}
+
+
+int peerconnection_create_answer(struct peer_connection *sess,
+				 struct mbuf **mb)
+{
+	int err;
+
+	if (!sess)
+		return EINVAL;
+
+	if (!sess->gather_ok) {
+		warning("peerconnection: sdp: ice not gathered\n");
+		return EPROTO;
+	}
+
+	info("peerconnection: create answer\n");
+
+	err = sdp_encode(mb, sess->sdp, false);
+	if (err)
+		return err;
+
+	if (LEVEL_DEBUG == log_level_get()) {
+		info("- - answer - -\n");
 		info("%b\n", (*mb)->buf, (*mb)->end);
 		info("- - - - - - -\n");
 	}
