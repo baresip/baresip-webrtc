@@ -82,7 +82,22 @@ function connect_call()
 		}
 	};
 
-	pc.ontrack = gotRemoteStream;
+	pc.ontrack = function(event) {
+
+		const track = event.track;
+
+		console.log("got remote track: kind=%s", track.kind);
+
+		if (audio.srcObject !== event.streams[0]) {
+			audio.srcObject = event.streams[0];
+			console.log("received remote audio stream");
+		}
+
+		if (remoteVideo.srcObject !== event.streams[0]) {
+			remoteVideo.srcObject = event.streams[0];
+			console.log("received remote video stream");
+		}
+	};
 
 	pc.oniceconnectionstatechange = function(event) {
 		console.log("ice state changed: %s", pc.iceConnectionState);
@@ -139,12 +154,6 @@ function gotStream(stream)
 }
 
 
-function onCreateSessionDescriptionError(error)
-{
-	console.log("Failed to create session description: %s", error.toString());
-}
-
-
 /*
  * Create a new call
  */
@@ -162,7 +171,11 @@ function send_post_connect()
 			var body = xhr.response;
 
 			pc.createOffer(offerOptions)
-			.then(gotDescription, onCreateSessionDescriptionError);
+			.then(gotDescription)
+			.catch(function(error) {
+			       console.log("Failed to create session description: %s",
+					   error.toString());
+			});
 		}
 	}
 
@@ -226,28 +239,6 @@ function disconnect_call()
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", '' + self.location + 'disconnect', true);
 	xhr.send();
-}
-
-
-/*
- * RTCTrackEvent event
- */
-function gotRemoteStream(event)
-{
-	const track = event.track;
-
-	console.log("got remote track: kind=%s", track.kind);
-	//console.log(event);
-
-	if (audio.srcObject !== event.streams[0]) {
-		audio.srcObject = event.streams[0];
-		console.log("received remote audio stream");
-	}
-
-	if (remoteVideo.srcObject !== event.streams[0]) {
-		remoteVideo.srcObject = event.streams[0];
-		console.log("received remote video stream");
-	}
 }
 
 
