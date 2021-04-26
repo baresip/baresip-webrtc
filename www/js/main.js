@@ -4,9 +4,9 @@
 
 'use strict';
 
-const audio = document.querySelector('audio#audio');
 const connectButton = document.querySelector('button#connectButton');
 const disconnectButton = document.querySelector('button#disconnectButton');
+const audio = document.querySelector('audio#audio');
 const remoteVideo = document.getElementById('remoteVideo');
 
 disconnectButton.disabled = true;
@@ -25,8 +25,11 @@ remoteVideo.addEventListener('loadedmetadata', function()
 });
 
 
+/*
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer#rtcofferoptions_dictionary
+ */
 const offerOptions = {
-	iceRestart: false,
+	iceRestart:             false,
 	voiceActivityDetection: true
 };
 
@@ -89,7 +92,7 @@ function connect_call()
 		.then(gotStream)
 		.catch(e => {
 			       alert("getUserMedia() error: ", e.name);
-		       });
+		});
 }
 
 
@@ -156,11 +159,11 @@ function send_post_connect()
 function send_put_sdp(descr)
 {
 	var xhr = new XMLHttpRequest();
+	const loc = self.location;
 
-	console.log("send put sdp: " + self.location);
+	console.log("send put sdp: " + loc);
 
-	xhr.open("PUT", '' + self.location + 'sdp', true);
-
+	xhr.open("PUT", '' + loc + 'sdp', true);
 	xhr.setRequestHeader("Content-Type", "application/json");
 
 	xhr.onreadystatechange = function() {
@@ -171,7 +174,7 @@ function send_put_sdp(descr)
 			console.log("remote description: type=%s", descr.type);
 
 			pc.setRemoteDescription(descr).then(() => {
-				     console.log('set remote description -- success');
+				console.log('set remote description -- success');
 			}, onSetSessionDescriptionError);
 		}
 	}
