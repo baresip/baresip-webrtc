@@ -67,7 +67,21 @@ function connect_call()
 
 	console.log("Created local peer connection");
 
-	pc.onicecandidate = e => onIceCandidate(pc, e);
+	pc.onicecandidate = (event) => {
+
+		if (event.candidate) {
+
+		}
+		else {
+			// All ICE candidates have been sent
+
+			const sd = pc.localDescription;
+			const json = JSON.stringify(sd);
+
+			send_put_sdp(json);
+		}
+	};
+
 	pc.ontrack = gotRemoteStream;
 
 	pc.oniceconnectionstatechange = function(event) {
@@ -233,21 +247,6 @@ function gotRemoteStream(event)
 	if (remoteVideo.srcObject !== event.streams[0]) {
 		remoteVideo.srcObject = event.streams[0];
 		console.log("received remote video stream");
-	}
-}
-
-
-function onIceCandidate(pc, event)
-{
-	if (event.candidate) {
-
-	} else {
-		// All ICE candidates have been sent
-
-		const sd = pc.localDescription;
-		const json = JSON.stringify(sd);
-
-		send_put_sdp(json);
 	}
 }
 
