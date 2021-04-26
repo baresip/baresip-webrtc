@@ -5,7 +5,7 @@ Baresip WebRTC Demo
 
 2. Install baresip dev:
 
-`$ sudo make install-dev -C ../baresip`
+`$ sudo make install install-dev -C ../baresip`
 
 3. Compile this project:
 
@@ -15,14 +15,28 @@ Baresip WebRTC Demo
 
 ```
 $ ./baresip-webrtc 
-Local network address:  IPv4=en0|10.0.1.8 
+Local network address:  IPv4=en0|10.0.1.12 
 medianat: ice
-medianat: ice-lite
 mediaenc: dtls_srtp
-aucodec: PCMU/8000/1
-aucodec: PCMA/8000/1
+aucodec: opus/48000/2
+aucodec: G722/16000/1
 ausrc: aufile
-demo: listening on 0.0.0.0:9000
+auplay: aufile
+vidcodec: H264
+vidcodec: H264
+vidcodec: H263
+vidcodec: H265
+avcodec: using H.264 encoder 'libx264' -- libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+avcodec: using H.264 decoder 'h264' -- H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+avcodec: using H.265 encoder 'libx265' -- libx265 H.265 / HEVC
+avcodec: using H.265 decoder 'hevc' -- HEVC (High Efficiency Video Coding)
+vidsrc: fakevideo
+vidisp: fakevideo
+ausrc: avformat
+vidsrc: avformat
+ausrc: ausine
+demo: listening on HTTP 0.0.0.0:9000
+demo: listening on HTTPS 0.0.0.0:9001
 ```
 
 5. Open this URL in Chrome and follow the instructions:
