@@ -34,6 +34,27 @@ const offerOptions = {
 };
 
 
+const configuration = {
+	bundlePolicy: 'balanced',
+
+	/* certificates */
+
+	iceCandidatePoolSize: 0,
+
+	'iceServers': [
+	{
+		'urls': 'stun:stun.l.google.com:19302'
+	}
+	],
+
+	iceTransportPolicy: 'all',
+
+	/* peerIdentity */
+
+	rtcpMuxPolicy: 'require',      // NOTE: deprecated
+};
+
+
 /*
  * This function is called first.
  */
@@ -42,26 +63,6 @@ function connect_call()
 	connectButton.disabled = true;
 
 	console.log("Connecting call");
-
-	const configuration = {
-		bundlePolicy: 'balanced',
-
-		/* certificates */
-
-		iceCandidatePoolSize: 0,
-
-		'iceServers': [
-		{
-			'urls': 'stun:stun.l.google.com:19302'
-		}
-		],
-
-		iceTransportPolicy: 'all',
-
-		/* peerIdentity */
-
-		rtcpMuxPolicy: 'require',      // NOTE: deprecated
-	};
 
 	pc = new RTCPeerConnection(configuration);
 
