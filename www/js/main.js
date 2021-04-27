@@ -90,47 +90,37 @@ function connect_call()
 		}
 	};
 
-	pc.onconnectionstatechange = function(event) {
-		console.log("connection state: %s", pc.connectionState);
-	}
-
 	console.log("Requesting local stream");
 
-	navigator.mediaDevices
-		.getUserMedia(constraints)
-		.then(gotStream)
-		.catch(e => {
-			alert("getUserMedia() error: ", e.name);
+	navigator.mediaDevices.getUserMedia(constraints)
+		.then(function(stream) {
+
+			disconnectButton.disabled = false;
+
+			// save the stream
+			localStream = stream;
+
+			// type: MediaStreamTrack
+			const audioTracks = localStream.getAudioTracks();
+			const videoTracks = localStream.getVideoTracks();
+
+			if (audioTracks.length > 0) {
+				console.log("Using Audio device: '%s'",
+					    audioTracks[0].label);
+			}
+			if (videoTracks.length > 0) {
+				console.log("Using Video device: '%s'",
+					    videoTracks[0].label);
+			}
+
+			localStream.getTracks()
+				.forEach(track => pc.addTrack(track, localStream));
+
+			send_post_connect();
+		})
+		.catch(function(err) {
+			/* handle the error */
 		});
-}
-
-
-/*
- * MediaStream stream.
- *
- * A stream consists of several tracks such as video or audio tracks.
- */
-function gotStream(stream)
-{
-	disconnectButton.disabled = false;
-
-	// save the stream
-	localStream = stream;
-
-	// type: MediaStreamTrack
-	const audioTracks = localStream.getAudioTracks();
-	const videoTracks = localStream.getVideoTracks();
-
-	if (audioTracks.length > 0) {
-		console.log("Using Audio device: '%s'", audioTracks[0].label);
-	}
-	if (videoTracks.length > 0) {
-		console.log("Using Video device: '%s'", videoTracks[0].label);
-	}
-
-	localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-	send_post_connect();
 }
 
 
