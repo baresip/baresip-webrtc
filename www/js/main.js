@@ -18,15 +18,6 @@ let pc;           /* PeerConnection */
 let localStream;  /* MediaStream */
 
 
-/*
- * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer#rtcofferoptions_dictionary
- */
-const offerOptions = {
-	iceRestart:             false,
-	voiceActivityDetection: true
-};
-
-
 const configuration = {
 	bundlePolicy: 'balanced',
 
@@ -43,6 +34,19 @@ const configuration = {
 	iceTransportPolicy: 'all',
 
 	/* peerIdentity */
+};
+
+const constraints = {
+	audio: true,
+	video: { width:640, height:480, framerate:30 }
+};
+
+/*
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer#rtcofferoptions_dictionary
+ */
+const offerOptions = {
+	iceRestart:             false,
+	voiceActivityDetection: true
 };
 
 
@@ -93,10 +97,7 @@ function connect_call()
 	console.log("Requesting local stream");
 
 	navigator.mediaDevices
-		.getUserMedia({
-			audio: true,
-			video: { width:640, height:480, framerate:30 }
-			})
+		.getUserMedia(constraints)
 		.then(gotStream)
 		.catch(e => {
 			alert("getUserMedia() error: ", e.name);
