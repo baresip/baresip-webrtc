@@ -4,25 +4,18 @@
 
 'use strict';
 
-const connectButton = document.querySelector('button#connectButton');
+const connectButton    = document.querySelector('button#connectButton');
 const disconnectButton = document.querySelector('button#disconnectButton');
-const audio = document.querySelector('audio#audio');
-const remoteVideo = document.getElementById('remoteVideo');
+const audio            = document.querySelector('audio#audio');
+const remoteVideo      = document.getElementById('remoteVideo');
 
+connectButton.onclick     = connect_call;
+disconnectButton.onclick  = disconnect_call;
 disconnectButton.disabled = true;
-connectButton.onclick = connect_call;
-disconnectButton.onclick = disconnect_call;
 
 
 let pc;           /* PeerConnection */
 let localStream;  /* MediaStream */
-
-
-remoteVideo.addEventListener('loadedmetadata', function()
-{
-	console.log("Remote video videoWidth: %spx,  videoHeight: %spx",
-		    this.videoWidth, this.videoHeight);
-});
 
 
 /*
@@ -50,14 +43,9 @@ const configuration = {
 	iceTransportPolicy: 'all',
 
 	/* peerIdentity */
-
-	rtcpMuxPolicy: 'require',      // NOTE: deprecated
 };
 
 
-/*
- * This function is called first.
- */
 function connect_call()
 {
 	connectButton.disabled = true;
@@ -65,8 +53,6 @@ function connect_call()
 	console.log("Connecting call");
 
 	pc = new RTCPeerConnection(configuration);
-
-	console.log("Created local peer connection");
 
 	pc.onicecandidate = (event) => {
 
@@ -100,20 +86,12 @@ function connect_call()
 		}
 	};
 
-	pc.oniceconnectionstatechange = function(event) {
-		console.log("ice state changed: %s", pc.iceConnectionState);
-	};
-
-	pc.onsignalingstatechange = (event) => {
-		if (pc)
-			console.log("signaling state: %s", pc.signalingState);
-	};
-
 	pc.onconnectionstatechange = function(event) {
 		console.log("connection state: %s", pc.connectionState);
 	}
 
 	console.log("Requesting local stream");
+
 	navigator.mediaDevices
 		.getUserMedia({
 			audio: true,
@@ -121,7 +99,7 @@ function connect_call()
 			})
 		.then(gotStream)
 		.catch(e => {
-			       alert("getUserMedia() error: ", e.name);
+			alert("getUserMedia() error: ", e.name);
 		});
 }
 
