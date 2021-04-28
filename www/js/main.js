@@ -141,7 +141,12 @@ function send_post_connect()
 			var body = xhr.response;
 
 			pc.createOffer(offerOptions)
-			.then(gotDescription)
+			.then(function (desc) {
+				console.log("got local description: %s", desc.type);
+
+				pc.setLocalDescription(desc).then(() => {
+				}, onSetSessionDescriptionError);
+			})
 			.catch(function(error) {
 			       console.log("Failed to create session description: %s",
 					   error.toString());
@@ -177,19 +182,6 @@ function send_put_sdp(descr)
 	}
 
 	xhr.send(descr);
-}
-
-
-/*
- * ${desc.sdp}
- */
-function gotDescription(desc)
-{
-	console.log("got local description: %s", desc.type);
-
-	pc.setLocalDescription(desc)
-		.then(() => {
-		}, onSetSessionDescriptionError);
 }
 
 
