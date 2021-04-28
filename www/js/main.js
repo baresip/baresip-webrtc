@@ -145,7 +145,11 @@ function send_post_connect()
 				console.log("got local description: %s", desc.type);
 
 				pc.setLocalDescription(desc).then(() => {
-				}, onSetSessionDescriptionError);
+				},
+				function (error) {
+					console.log("setLocalDescription: %s",
+						    error.toString());
+				});
 			})
 			.catch(function(error) {
 			       console.log("Failed to create session description: %s",
@@ -177,7 +181,10 @@ function send_put_sdp(descr)
 
 			pc.setRemoteDescription(descr).then(() => {
 				console.log('set remote description -- success');
-			}, onSetSessionDescriptionError);
+			}, function (error) {
+				console.log("setRemoteDescription: %s",
+					    error.toString());
+			});
 		}
 	}
 
@@ -201,10 +208,4 @@ function disconnect_call()
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", '' + self.location + 'disconnect', true);
 	xhr.send();
-}
-
-
-function onSetSessionDescriptionError(error)
-{
-	console.log("Failed to set session description: %s", error.toString());
 }
