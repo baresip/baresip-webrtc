@@ -1,5 +1,7 @@
 /*
  * main.js
+ *
+ * Copyright (C) 2020 Alfred E. Heggestad
  */
 
 'use strict';

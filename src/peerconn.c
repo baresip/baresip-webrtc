@@ -374,10 +374,9 @@ int peerconnection_create(struct peer_connection **sessp,
 }
 
 
-/* todo: add per-audio configuration */
 int peerconnection_add_audio(struct peer_connection *sess,
-			 const struct config *cfg,
-			 struct list *aucodecl)
+			     const struct config *cfg,
+			     struct list *aucodecl)
 {
 	struct media_track *media;
 	struct stream *strm;
@@ -407,10 +406,8 @@ int peerconnection_add_audio(struct peer_connection *sess,
 
 	strm = audio_strm(media->u.au);
 
-	stream_set_session_handlers(strm, mnatconn_handler,
-				    rtpestab_handler,
-				    rtcp_handler,
-				    stream_error_handler, media);
+	stream_set_session_handlers(strm, mnatconn_handler, rtpestab_handler,
+				    rtcp_handler, stream_error_handler, media);
 
 	return 0;
 }
@@ -577,7 +574,7 @@ int peerconnection_start_ice(struct peer_connection *sess)
 	if (!sess)
 		return EINVAL;
 
-	info(".. peerconnection: start ice\n");
+	info("peerconnection: start ice\n");
 
 	if (!sess->sdp_ok) {
 		warning("peerconnection: ice: sdp not ready\n");
