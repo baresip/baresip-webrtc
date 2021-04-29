@@ -46,7 +46,7 @@ static struct stream *media_get_stream(const struct media_track *media)
 
 static void destructor(void *data)
 {
-	struct peer_connection *sess = data;
+	struct peer_connection *pc = data;
 	struct le *le;
 	size_t i;
 
@@ -55,12 +55,12 @@ static void destructor(void *data)
 	info("*** RTCPeerConnection summary ***\n");
 
 	info("steps:\n");
-	info(".. gather:   %d\n", sess->gather_ok);
-	info(".. sdp:      %d\n", sess->sdp_ok);
+	info(".. gather:   %d\n", pc->gather_ok);
+	info(".. sdp:      %d\n", pc->sdp_ok);
 	info("\n");
 
 	i=0;
-	for (le = sess->medial.head; le; le = le->next) {
+	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
 
 		if (!media->u.p)
@@ -78,7 +78,7 @@ static void destructor(void *data)
 
 	info("\n");
 
-	for (le = sess->medial.head; le; le = le->next) {
+	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
 
 		if (!media->u.p)
@@ -96,7 +96,7 @@ static void destructor(void *data)
 		}
 	}
 
-	le = sess->medial.head;
+	le = pc->medial.head;
 	while (le) {
 		struct media_track *media = le->data;
 
@@ -108,18 +108,18 @@ static void destructor(void *data)
 		mem_deref(media);
 	}
 
-	mem_deref(sess->sdp);
-	mem_deref(sess->mnats);
-	mem_deref(sess->mencs);
+	mem_deref(pc->sdp);
+	mem_deref(pc->mnats);
+	mem_deref(pc->mencs);
 }
 
 
-static struct media_track *lookup_media(struct peer_connection *sess,
-				  struct stream *strm)
+static struct media_track *lookup_media(struct peer_connection *pc,
+					struct stream *strm)
 {
 	struct le *le;
 
-	for (le = sess->medial.head; le; le = le->next) {
+	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
 
 		if (strm == media_get_stream(media))
@@ -130,14 +130,14 @@ static struct media_track *lookup_media(struct peer_connection *sess,
 }
 
 
-static void pc_close(struct peer_connection *sess, int err)
+static void pc_close(struct peer_connection *pc, int err)
 {
-	peerconnection_close_h *closeh = sess->closeh;
+	peerconnection_close_h *closeh = pc->closeh;
 
-	sess->closeh = NULL;
+	pc->closeh = NULL;
 
 	if (closeh)
-		closeh(err, sess->arg);
+		closeh(err, pc->arg);
 }
 
 
@@ -174,26 +174,26 @@ static void video_err_handler(int err, const char *str, void *arg)
 static void mnat_estab_handler(int err, uint16_t scode, const char *reason,
 			       void *arg)
 {
-	struct peer_connection *sess = arg;
+	struct peer_connection *pc = arg;
 
 	if (err) {
 		warning("peerconnection: medianat failed: %m\n", err);
-		pc_close(sess, err);
+		pc_close(pc, err);
 		return;
 	}
 	else if (scode) {
 		warning("peerconnection: medianat failed: %u %s\n",
 			scode, reason);
-		pc_close(sess, EPROTO);
+		pc_close(pc, EPROTO);
 		return;
 	}
 
 	info("peerconnection: medianat established/gathered (all streams)\n");
 
-	sess->gather_ok = true;
+	pc->gather_ok = true;
 
-	if (sess->gatherh)
-		sess->gatherh(sess->arg);
+	if (pc->gatherh)
+		pc->gatherh(pc->arg);
 }
 
 
@@ -201,10 +201,10 @@ static void menc_event_handler(enum menc_event event,
 			       const char *prm, struct stream *strm,
 			       void *arg)
 {
-	struct peer_connection *sess = arg;
+	struct peer_connection *pc = arg;
 	struct media_track *media;
 
-	media = lookup_media(sess, strm);
+	media = lookup_media(pc, strm);
 
 	info("peerconnection: mediaenc event '%s' (%s)\n",
 	     menc_event_name(event), prm);
@@ -217,8 +217,8 @@ static void menc_event_handler(enum menc_event event,
 		stream_set_secure(strm, true);
 		stream_start(strm);
 
-		if (sess->estabh)
-			sess->estabh(media, sess->arg);
+		if (pc->estabh)
+			pc->estabh(media, pc->arg);
 		break;
 
 	default:
@@ -229,12 +229,12 @@ static void menc_event_handler(enum menc_event event,
 
 static void menc_error_handler(int err, void *arg)
 {
-	struct peer_connection *sess = arg;
+	struct peer_connection *pc = arg;
 
 	warning("peerconnection: mediaenc error: %m\n", err);
 
-	if (sess->closeh)
-		sess->closeh(err, sess->arg);
+	if (pc->closeh)
+		pc->closeh(err, pc->arg);
 }
 
 
