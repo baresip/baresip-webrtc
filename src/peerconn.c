@@ -143,8 +143,8 @@ static void pc_close(struct peer_connection *pc, int err)
 
 static void audio_event_handler(int key, bool end, void *arg)
 {
-	struct peer_connection *sess = arg;
-	(void)sess;
+	struct peer_connection *pc = arg;
+	(void)pc;
 	(void)end;
 
 	info("peerconnection: recv DTMF event: key=%d ('%c')\n", key, key);
@@ -153,21 +153,21 @@ static void audio_event_handler(int key, bool end, void *arg)
 
 static void audio_err_handler(int err, const char *str, void *arg)
 {
-	struct peer_connection *sess = arg;
+	struct peer_connection *pc = arg;
 
 	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
-	pc_close(sess, err);
+	pc_close(pc, err);
 }
 
 
 static void video_err_handler(int err, const char *str, void *arg)
 {
-	struct peer_connection *sess = arg;
+	struct peer_connection *pc = arg;
 
 	warning("peerconnection: video error: %m (%s)\n", err, str);
 
-	pc_close(sess, err);
+	pc_close(pc, err);
 }
 
 
@@ -286,7 +286,7 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 }
 
 
-int peerconnection_create(struct peer_connection **sessp,
+int peerconnection_create(struct peer_connection **pcp,
 			  const struct config *cfg,
 			  const struct sa *laddr,
 			  struct mbuf *offer,
@@ -297,11 +297,11 @@ int peerconnection_create(struct peer_connection **sessp,
 			  peerconnection_estab_h *estabh,
 			  peerconnection_close_h *closeh, void *arg)
 {
-	struct peer_connection *sess;
+	struct peer_connection *pc;
 	bool got_offer = offer != NULL;
 	int err;
 
-	if (!sessp || !cfg || !laddr)
+	if (!pcp || !cfg || !laddr)
 		return EINVAL;
 
 	if (!mnat || !menc)
@@ -309,18 +309,18 @@ int peerconnection_create(struct peer_connection **sessp,
 
 	info("peerconnection: create: laddr = %j\n", laddr);
 
-	sess = mem_zalloc(sizeof(*sess), destructor);
-	if (!sess)
+	pc = mem_zalloc(sizeof(*pc), destructor);
+	if (!pc)
 		return ENOMEM;
 
 	/* RFC 7022 */
-	rand_str(sess->cname, sizeof(sess->cname));
+	rand_str(pc->cname, sizeof(pc->cname));
 
-	sess->stream_prm.use_rtp = true;
-	sess->stream_prm.af      = sa_af(laddr);
-	sess->stream_prm.cname   = sess->cname;
+	pc->stream_prm.use_rtp = true;
+	pc->stream_prm.af      = sa_af(laddr);
+	pc->stream_prm.cname   = pc->cname;
 
-	err = sdp_session_alloc(&sess->sdp, laddr);
+	err = sdp_session_alloc(&pc->sdp, laddr);
 	if (err)
 		goto out;
 
@@ -328,15 +328,15 @@ int peerconnection_create(struct peer_connection **sessp,
 
 		info("peerconnection: using mnat '%s'\n", mnat->id);
 
-		sess->mnat = mnat;
+		pc->mnat = mnat;
 
-		err = mnat->sessh(&sess->mnats, mnat,
+		err = mnat->sessh(&pc->mnats, mnat,
 				  net_dnsc(baresip_network()),
 				  sa_af(laddr),
 				  stun_srv,
 				  stun_user, stun_pass,
-				  sess->sdp, !got_offer,
-				  mnat_estab_handler, sess);
+				  pc->sdp, !got_offer,
+				  mnat_estab_handler, pc);
 		if (err) {
 			warning("peerconnection: medianat session: %m\n", err);
 			goto out;
@@ -346,35 +346,35 @@ int peerconnection_create(struct peer_connection **sessp,
 	if (menc->sessh) {
 		info("peerconnection: using menc '%s'\n", menc->id);
 
-		sess->menc = menc;
+		pc->menc = menc;
 
-		err = menc->sessh(&sess->mencs, sess->sdp, !got_offer,
+		err = menc->sessh(&pc->mencs, pc->sdp, !got_offer,
 				  menc_event_handler,
-				  menc_error_handler, sess);
+				  menc_error_handler, pc);
 		if (err) {
 			warning("peerconnection: mediaenc session: %m\n", err);
 			goto out;
 		}
 	}
 
-	sess->got_offer = got_offer;
+	pc->got_offer = got_offer;
 
-	sess->gatherh = gatherh;
-	sess->estabh = estabh;
-	sess->closeh = closeh;
-	sess->arg = arg;
+	pc->gatherh = gatherh;
+	pc->estabh = estabh;
+	pc->closeh = closeh;
+	pc->arg = arg;
 
  out:
 	if (err)
-		mem_deref(sess);
+		mem_deref(pc);
 	else
-		*sessp = sess;
+		*pcp = pc;
 
 	return err;
 }
 
 
-int peerconnection_add_audio(struct peer_connection *sess,
+int peerconnection_add_audio(struct peer_connection *pc,
 			     const struct config *cfg,
 			     struct list *aucodecl)
 {
@@ -382,27 +382,27 @@ int peerconnection_add_audio(struct peer_connection *sess,
 	struct stream *strm;
 	int err;
 
-	if (!sess || !cfg || !aucodecl)
+	if (!pc || !cfg || !aucodecl)
 		return EINVAL;
 
 	info("peerconnection: add audio (codecs=%u)\n", list_count(aucodecl));
 
-	media = media_track_add(&sess->medial, sess, MEDIA_KIND_AUDIO);
+	media = media_track_add(&pc->medial, pc, MEDIA_KIND_AUDIO);
 
-	err = audio_alloc(&media->u.au, &sess->streaml,
-			  &sess->stream_prm, cfg,
-			  NULL, sess->sdp, 0,
-			  sess->mnat, sess->mnats,
-			  sess->menc, sess->mencs,
-			  20, aucodecl, !sess->got_offer,
+	err = audio_alloc(&media->u.au, &pc->streaml,
+			  &pc->stream_prm, cfg,
+			  NULL, pc->sdp, 0,
+			  pc->mnat, pc->mnats,
+			  pc->menc, pc->mencs,
+			  20, aucodecl, !pc->got_offer,
 			  audio_event_handler, NULL,
-			  audio_err_handler, sess);
+			  audio_err_handler, pc);
 	if (err) {
 		warning("peerconnection: audio alloc failed (%m)\n", err);
 		return err;
 	}
 
-	audio_set_media_context(media->u.au, &sess->ctx);
+	audio_set_media_context(media->u.au, &pc->ctx);
 
 	strm = audio_strm(media->u.au);
 
@@ -413,7 +413,7 @@ int peerconnection_add_audio(struct peer_connection *sess,
 }
 
 
-int peerconnection_add_video(struct peer_connection *sess,
+int peerconnection_add_video(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *vidcodecl)
 {
@@ -421,23 +421,23 @@ int peerconnection_add_video(struct peer_connection *sess,
 	struct stream *strm;
 	int err;
 
-	if (!sess || !cfg || !vidcodecl)
+	if (!pc || !cfg || !vidcodecl)
 		return EINVAL;
 
 	info("peerconnection: add video (codecs=%u)\n", list_count(vidcodecl));
 
-	media = media_track_add(&sess->medial, sess, MEDIA_KIND_VIDEO);
+	media = media_track_add(&pc->medial, pc, MEDIA_KIND_VIDEO);
 
-	err = video_alloc(&media->u.vid, &sess->streaml,
-			  &sess->stream_prm,
+	err = video_alloc(&media->u.vid, &pc->streaml,
+			  &pc->stream_prm,
 			  cfg,
-			  sess->sdp, 0,
-			  sess->mnat, sess->mnats,
-			  sess->menc, sess->mencs,
+			  pc->sdp, 0,
+			  pc->mnat, pc->mnats,
+			  pc->menc, pc->mencs,
 			  NULL, vidcodecl,
 			  NULL,
-			  !sess->got_offer,
-			  video_err_handler, sess);
+			  !pc->got_offer,
+			  video_err_handler, pc);
 	if (err) {
 		warning("peerconnection: video alloc failed (%m)\n", err);
 		return err;
@@ -454,13 +454,13 @@ int peerconnection_add_video(struct peer_connection *sess,
 }
 
 
-int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
-			    bool offer)
+int peerconnection_decode_descr(struct peer_connection *pc, struct mbuf *sdp,
+				bool offer)
 {
 	struct le *le;
 	int err;
 
-	if (!sess || !sdp)
+	if (!pc || !sdp)
 		return EINVAL;
 
 	info("peerconnection: decode %s\n", offer ? "offer" : "answer");
@@ -471,14 +471,14 @@ int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 		info("- - - - - - -\n");
 	}
 
-	err = sdp_decode(sess->sdp, sdp, offer);
+	err = sdp_decode(pc->sdp, sdp, offer);
 	if (err) {
 		warning("peerconnection: sdp decode failed (%m)\n", err);
 		return err;
 	}
 
 	/* must be done after sdp_decode() */
-	for (le = sess->medial.head; le; le = le->next) {
+	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
 
 		if (!media->u.p)
@@ -496,7 +496,7 @@ int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 	}
 
 	/* must be done after sdp_decode() */
-	for (le = sess->streaml.head; le; le = le->next) {
+	for (le = pc->streaml.head; le; le = le->next) {
 		struct stream *strm = le->data;
 
 		stream_update(strm);
@@ -506,21 +506,21 @@ int peerconnection_decode_descr(struct peer_connection *sess, struct mbuf *sdp,
 }
 
 
-int peerconnection_create_offer(struct peer_connection *sess, struct mbuf **mb)
+int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 {
 	int err;
 
-	if (!sess)
+	if (!pc)
 		return EINVAL;
 
-	if (!sess->gather_ok) {
+	if (!pc->gather_ok) {
 		warning("peerconnection: sdp: ice not gathered\n");
 		return EPROTO;
 	}
 
 	info("peerconnection: create offer\n");
 
-	err = sdp_encode(mb, sess->sdp, true);
+	err = sdp_encode(mb, pc->sdp, true);
 	if (err)
 		return err;
 
@@ -530,28 +530,28 @@ int peerconnection_create_offer(struct peer_connection *sess, struct mbuf **mb)
 		info("- - - - - - -\n");
 	}
 
-	sess->sdp_ok = true;
+	pc->sdp_ok = true;
 
 	return 0;
 }
 
 
-int peerconnection_create_answer(struct peer_connection *sess,
+int peerconnection_create_answer(struct peer_connection *pc,
 				 struct mbuf **mb)
 {
 	int err;
 
-	if (!sess)
+	if (!pc)
 		return EINVAL;
 
-	if (!sess->gather_ok) {
+	if (!pc->gather_ok) {
 		warning("peerconnection: sdp: ice not gathered\n");
 		return EPROTO;
 	}
 
 	info("peerconnection: create answer\n");
 
-	err = sdp_encode(mb, sess->sdp, false);
+	err = sdp_encode(mb, pc->sdp, false);
 	if (err)
 		return err;
 
@@ -561,28 +561,28 @@ int peerconnection_create_answer(struct peer_connection *sess,
 		info("- - - - - - -\n");
 	}
 
-	sess->sdp_ok = true;
+	pc->sdp_ok = true;
 
 	return 0;
 }
 
 
-int peerconnection_start_ice(struct peer_connection *sess)
+int peerconnection_start_ice(struct peer_connection *pc)
 {
 	int err;
 
-	if (!sess)
+	if (!pc)
 		return EINVAL;
 
 	info("peerconnection: start ice\n");
 
-	if (!sess->sdp_ok) {
+	if (!pc->sdp_ok) {
 		warning("peerconnection: ice: sdp not ready\n");
 		return EPROTO;
 	}
 
-	if (sess->mnat->updateh && sess->mnats) {
-		err = sess->mnat->updateh(sess->mnats);
+	if (pc->mnat->updateh && pc->mnats) {
+		err = pc->mnat->updateh(pc->mnats);
 		if (err) {
 			warning("peerconnection: mnat update failed (%m)\n",
 				err);
@@ -595,9 +595,9 @@ int peerconnection_start_ice(struct peer_connection *sess)
 
 
 /* todo: replace with signalingstate */
-bool peerconnection_got_offer(const struct peer_connection *sess)
+bool peerconnection_got_offer(const struct peer_connection *pc)
 {
-	return sess ? sess->got_offer : false;
+	return pc ? pc->got_offer : false;
 }
 
 
