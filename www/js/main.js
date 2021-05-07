@@ -27,7 +27,7 @@ const configuration = {
 
 	iceCandidatePoolSize: 0,
 
-	'iceServers': [
+	iceServers: [
 	{
 		'urls': 'stun:stun.l.google.com:19302'
 	}
