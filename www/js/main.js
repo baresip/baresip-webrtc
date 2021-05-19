@@ -1,7 +1,7 @@
 /*
  * main.js
  *
- * Copyright (C) 2020 Alfred E. Heggestad
+ * Copyright (C) 2020 - 2021 Alfred E. Heggestad
  */
 
 'use strict';
@@ -62,10 +62,8 @@ function connect_call()
 
 	pc.onicecandidate = (event) => {
 
-		if (event.candidate) {
+		if (event.candidate === null) {
 
-		}
-		else {
 			// All ICE candidates have been sent
 
 			const sd = pc.localDescription;
@@ -140,8 +138,6 @@ function send_post_connect()
 
 	xhr.onreadystatechange = function() {
 		if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-			var body = xhr.response;
-
 			pc.createOffer(offerOptions)
 			.then(function (desc) {
 				console.log("got local description: %s", desc.type);
