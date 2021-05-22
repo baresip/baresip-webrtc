@@ -33,13 +33,10 @@ struct peer_connection {
 };
 
 
-static void destructor(void *data)
+static void pc_summary(const struct peer_connection *pc)
 {
-	struct peer_connection *pc = data;
 	struct le *le;
-	size_t i;
-
-	info("peerconnection: destroyed\n");
+	size_t i = 0;
 
 	info("*** RTCPeerConnection summary ***\n");
 
@@ -48,8 +45,7 @@ static void destructor(void *data)
 	info(".. sdp:      %d\n", pc->sdp_ok);
 	info("\n");
 
-	i=0;
-	for (le = pc->medial.head; le; le = le->next) {
+	for (le = pc->medial.head; le; le = le->next, ++i) {
 		struct media_track *media = le->data;
 
 		if (!media->u.p)
@@ -61,11 +57,18 @@ static void destructor(void *data)
 		info(".. rtp:      %d\n", media->rtp);
 		info(".. rtcp:     %d\n", media->rtcp);
 		info("\n");
-
-		++i;
 	}
 
 	info("\n");
+}
+
+
+static void destructor(void *data)
+{
+	struct peer_connection *pc = data;
+	struct le *le;
+
+	pc_summary(pc);
 
 	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
