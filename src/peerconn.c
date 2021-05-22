@@ -106,12 +106,12 @@ static void destructor(void *data)
 }
 
 
-static struct media_track *lookup_media(struct peer_connection *pc,
+static struct media_track *lookup_media(const struct list *medial,
 					struct stream *strm)
 {
 	struct le *le;
 
-	for (le = pc->medial.head; le; le = le->next) {
+	for (le = medial->head; le; le = le->next) {
 		struct media_track *media = le->data;
 
 		if (strm == media_get_stream(media))
@@ -196,7 +196,7 @@ static void menc_event_handler(enum menc_event event,
 	struct peer_connection *pc = arg;
 	struct media_track *media;
 
-	media = lookup_media(pc, strm);
+	media = lookup_media(&pc->medial, strm);
 
 	info("peerconnection: mediaenc event '%s' (%s)\n",
 	     menc_event_name(event), prm);
