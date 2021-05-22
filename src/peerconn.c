@@ -33,17 +33,6 @@ struct peer_connection {
 };
 
 
-static struct stream *media_get_stream(const struct media_track *media)
-{
-	switch (media->kind) {
-
-	case MEDIA_KIND_AUDIO: return audio_strm(media->u.au);
-	case MEDIA_KIND_VIDEO: return video_strm(media->u.vid);
-	default:               return NULL;
-	}
-}
-
-
 static void destructor(void *data)
 {
 	struct peer_connection *pc = data;

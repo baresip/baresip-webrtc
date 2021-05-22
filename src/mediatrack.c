@@ -1,3 +1,8 @@
+/**
+ * @file src/mediatrack.c  RTC Media Track
+ *
+ * Copyright (C) 2021 Alfred E. Heggestad
+ */
 
 #include <string.h>
 #include <re.h>
@@ -135,6 +140,20 @@ void mediatrack_stop(struct media_track *media)
 	case MEDIA_KIND_VIDEO:
 		video_stop(media->u.vid, NULL);
 		break;
+	}
+}
+
+
+struct stream *media_get_stream(const struct media_track *media)
+{
+	if (!media)
+		return NULL;
+
+	switch (media->kind) {
+
+	case MEDIA_KIND_AUDIO: return audio_strm(media->u.au);
+	case MEDIA_KIND_VIDEO: return video_strm(media->u.vid);
+	default:               return NULL;
 	}
 }
 
