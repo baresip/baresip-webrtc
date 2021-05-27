@@ -14,13 +14,13 @@ enum { HASH_SIZE = 4 };
 
 
 int session_description_encode(struct odict **odp,
-			       const char *type, struct mbuf *sdp)
+			       enum sdp_type type, struct mbuf *sdp)
 {
 	struct odict *od;
 	char *str = NULL;
 	int err;
 
-	if (!odp || !type || !sdp)
+	if (!odp || !sdp)
 		return EINVAL;
 
 	info("descr: encode: type='%s'\n", type);
@@ -33,7 +33,7 @@ int session_description_encode(struct odict **odp,
 	if (err)
 		goto out;
 
-	err |= odict_entry_add(od, "type", ODICT_STRING, type);
+	err |= odict_entry_add(od, "type", ODICT_STRING, sdptype_name(type));
 	err |= odict_entry_add(od, "sdp", ODICT_STRING, str);
 	if (err)
 		goto out;
@@ -77,7 +77,15 @@ int session_description_decode(struct session_description *sd,
 		goto out;
 	}
 
-	str_ncpy(sd->type, type, sizeof(sd->type));
+	if (0 == str_casecmp(type, "offer"))
+		sd->type = SDP_OFFER;
+	else if (0 == str_casecmp(type, "answer"))
+		sd->type = SDP_ANSWER;
+	else {
+		warning("descr: invalid type %s\n", type);
+		err = EPROTO;
+		goto out;
+	}
 
 	sd->sdp = mbuf_alloc(512);
 	if (!sd->sdp) {
@@ -88,7 +96,7 @@ int session_description_decode(struct session_description *sd,
 	mbuf_write_str(sd->sdp, sdp);
 	sd->sdp->pos = 0;
 
-	info("descr: decode: type='%s'\n", sd->type);
+	info("descr: decode: type='%s'\n", type);
 
  out:
 	mem_deref(od);
@@ -102,6 +110,17 @@ void session_description_reset(struct session_description *sd)
 	if (!sd)
 		return;
 
-	sd->type[0] = '\0';
+	sd->type = -1;
 	sd->sdp = mem_deref(sd->sdp);
+}
+
+
+const char *sdptype_name(enum sdp_type type)
+{
+	switch (type) {
+
+	case SDP_OFFER:  return "offer";
+	case SDP_ANSWER: return "answer";
+	default: return "?";
+	}
 }

@@ -29,7 +29,8 @@ struct peer_connection {
 
 	/* steps: */
 	bool gather_ok;
-	bool sdp_ok;
+	bool sdp_enc_ok;
+	bool sdp_dec_ok;
 };
 
 
@@ -42,7 +43,8 @@ static void pc_summary(const struct peer_connection *pc)
 
 	info("steps:\n");
 	info(".. gather:   %d\n", pc->gather_ok);
-	info(".. sdp:      %d\n", pc->sdp_ok);
+	info(".. sdp_enc:  %d\n", pc->sdp_enc_ok);
+	info(".. sdp_dec:  %d\n", pc->sdp_dec_ok);
 	info("\n");
 
 	for (le = pc->medial.head; le; le = le->next, ++i) {
@@ -278,19 +280,18 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 }
 
 
-int peerconnection_create(struct peer_connection **pcp,
-			  const struct config *cfg,
-			  const struct sa *laddr,
-			  struct mbuf *offer,
-			  const struct mnat *mnat, const struct menc *menc,
-			  struct stun_uri *stun_srv,
-			  const char *stun_user, const char *stun_pass,
-			  peerconnection_gather_h *gatherh,
-			  peerconnection_estab_h *estabh,
-			  peerconnection_close_h *closeh, void *arg)
+int peerconnection_new(struct peer_connection **pcp,
+		       const struct config *cfg,
+		       const struct sa *laddr,
+		       bool got_offer,
+		       const struct mnat *mnat, const struct menc *menc,
+		       struct stun_uri *stun_srv,
+		       const char *stun_user, const char *stun_pass,
+		       peerconnection_gather_h *gatherh,
+		       peerconnection_estab_h *estabh,
+		       peerconnection_close_h *closeh, void *arg)
 {
 	struct peer_connection *pc;
-	bool got_offer = offer != NULL;
 	int err;
 
 	if (!pcp || !cfg || !laddr)
@@ -299,7 +300,8 @@ int peerconnection_create(struct peer_connection **pcp,
 	if (!mnat || !menc)
 		return EINVAL;
 
-	info("peerconnection: create: laddr = %j\n", laddr);
+	info("peerconnection: create: laddr = %j, got_offer=%d\n",
+	     laddr, got_offer);
 
 	pc = mem_zalloc(sizeof(*pc), destructor);
 	if (!pc)
@@ -446,24 +448,31 @@ int peerconnection_add_video(struct peer_connection *pc,
 }
 
 
-int peerconnection_decode_descr(struct peer_connection *pc, struct mbuf *sdp,
-				bool offer)
+/*
+ * RTCPeerConnection.setRemoteDescription()
+ */
+int peerconnection_set_remote_descr(struct peer_connection *pc,
+				    const struct session_description *sd)
 {
 	struct le *le;
+	bool offer;
 	int err;
 
-	if (!pc || !sdp)
+	if (!pc || !sd)
 		return EINVAL;
 
-	info("peerconnection: decode %s\n", offer ? "offer" : "answer");
+	info("peerconnection: set remote description. type=%s\n",
+	     sdptype_name(sd->type));
+
+	offer = (sd->type == SDP_OFFER);
 
 	if (LEVEL_DEBUG == log_level_get()) {
-		info("- - %s - -\n", offer ? "offer" : "answer");
-		info("%b\n", (sdp)->buf, (sdp)->end);
+		info("- - %s - -\n", sdptype_name(sd->type));
+		info("%b\n", (sd->sdp)->buf, (sd->sdp)->end);
 		info("- - - - - - -\n");
 	}
 
-	err = sdp_decode(pc->sdp, sdp, offer);
+	err = sdp_decode(pc->sdp, sd->sdp, offer);
 	if (err) {
 		warning("peerconnection: sdp decode failed (%m)\n", err);
 		return err;
@@ -494,6 +503,8 @@ int peerconnection_decode_descr(struct peer_connection *pc, struct mbuf *sdp,
 		stream_update(strm);
 	}
 
+	pc->sdp_dec_ok = true;
+
 	return 0;
 }
 
@@ -522,7 +533,7 @@ int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 		info("- - - - - - -\n");
 	}
 
-	pc->sdp_ok = true;
+	pc->sdp_enc_ok = true;
 
 	return 0;
 }
@@ -553,7 +564,7 @@ int peerconnection_create_answer(struct peer_connection *pc,
 		info("- - - - - - -\n");
 	}
 
-	pc->sdp_ok = true;
+	pc->sdp_enc_ok = true;
 
 	return 0;
 }
@@ -568,7 +579,7 @@ int peerconnection_start_ice(struct peer_connection *pc)
 
 	info("peerconnection: start ice\n");
 
-	if (!pc->sdp_ok) {
+	if (!pc->sdp_dec_ok) {
 		warning("peerconnection: ice: sdp not ready\n");
 		return EPROTO;
 	}

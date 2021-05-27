@@ -12,6 +12,7 @@
 
 struct stream;
 struct media_track;
+struct session_description;
 
 
 /*
@@ -27,10 +28,10 @@ typedef void (peerconnection_estab_h)(struct media_track *media,
 				      void *arg);
 typedef void (peerconnection_close_h)(int err, void *arg);
 
-int peerconnection_create(struct peer_connection **pcp,
+int peerconnection_new(struct peer_connection **pcp,
 			  const struct config *cfg,
 			  const struct sa *laddr,
-			  struct mbuf *offer,
+			  bool got_offer,
 			  const struct mnat *mnat, const struct menc *menc,
 			  struct stun_uri *stun_srv,
 			  const char *stun_user, const char *stun_pass,
@@ -43,8 +44,8 @@ int peerconnection_add_audio(struct peer_connection *pc,
 int peerconnection_add_video(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *vidcodecl);
-int peerconnection_decode_descr(struct peer_connection *pc, struct mbuf *sdp,
-			    bool offer);
+int peerconnection_set_remote_descr(struct peer_connection *pc,
+				    const struct session_description *sd);
 int peerconnection_create_offer(struct peer_connection *sess,
 				struct mbuf **mb);
 int peerconnection_create_answer(struct peer_connection *sess,
@@ -75,6 +76,11 @@ int demo_close(void);
  * Session Description
  */
 
+enum sdp_type {
+	SDP_ANSWER,
+	SDP_OFFER
+};
+
 /*
  * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
  *
@@ -86,15 +92,16 @@ int demo_close(void);
  * }
  */
 struct session_description {
-	char type[32];     /* offer, answer, ... */
+	enum sdp_type type;
 	struct mbuf *sdp;
 };
 
 int session_description_encode(struct odict **odp,
-			       const char *type, struct mbuf *sdp);
+			       enum sdp_type type, struct mbuf *sdp);
 int session_description_decode(struct session_description *sd,
 			       struct mbuf *mb);
 void session_description_reset(struct session_description *sd);
+const char *sdptype_name(enum sdp_type type);
 
 
 /*

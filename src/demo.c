@@ -80,7 +80,7 @@ static void reply_fmt(struct http_conn *conn, const char *ctype,
  *
  * NOTE: currentLocalDescription
  */
-static int reply_descr(const char *type, struct mbuf *mb_sdp)
+static int reply_descr(enum sdp_type type, struct mbuf *mb_sdp)
 {
 	struct odict *od = NULL;
 	int err;
@@ -102,15 +102,15 @@ static int reply_descr(const char *type, struct mbuf *mb_sdp)
 static void peerconnection_gather_handler(void *arg)
 {
 	struct mbuf *mb_sdp = NULL;
-	const char *type;
+	enum sdp_type type;
 	bool send_offer;
 	int err;
 	(void)arg;
 
 	send_offer = !peerconnection_got_offer(g_pc);
-	type = send_offer ? "offer" : "answer";
+	type = send_offer ? SDP_OFFER : SDP_ANSWER;
 
-	info("demo: session gathered -- send %s\n", type);
+	info("demo: session gathered -- send %s\n", sdptype_name(type));
 
 	if (send_offer)
 		err = peerconnection_create_offer(g_pc, &mb_sdp);
@@ -120,8 +120,10 @@ static void peerconnection_gather_handler(void *arg)
 		goto out;
 
 	err = reply_descr(type, mb_sdp);
-	if (err)
+	if (err) {
+		warning("reply error: %m\n", err);
 		goto out;
+	}
 
 	if (!send_offer) {
 
@@ -177,13 +179,14 @@ static void peerconnection_close_handler(int err, void *arg)
 
 
 /* RemoteDescription */
-static int create_session(struct mbuf *offer)
+static int create_session(enum sdp_type type)
 {
 	struct sa laddr;
 	const struct config *config = conf_config();
+	bool got_offer = (type == SDP_OFFER);
 	int err;
 
-	info("demo: create session (offer=%s)\n", offer ? "yes" : "no");
+	info("demo: create session (type=%s)\n", sdptype_name(type));
 
 	sa_set_str(&laddr, "127.0.0.1", 0);
 
@@ -193,13 +196,13 @@ static int create_session(struct mbuf *offer)
 	}
 
 	/* create a new session object, send SDP to it */
-	err = peerconnection_create(&g_pc, config, &laddr,
-				    offer, mnat, menc,
-				    stun_srv,
-				    g.stun_user, g.stun_pass,
-				    peerconnection_gather_handler,
-				    peerconnection_estab_handler,
-				    peerconnection_close_handler, NULL);
+	err = peerconnection_new(&g_pc, config, &laddr,
+				 got_offer, mnat, menc,
+				 stun_srv,
+				 g.stun_user, g.stun_pass,
+				 peerconnection_gather_handler,
+				 peerconnection_estab_handler,
+				 peerconnection_close_handler, NULL);
 	if (err) {
 		warning("demo: session alloc failed (%m)\n", err);
 		goto out;
@@ -217,13 +220,6 @@ static int create_session(struct mbuf *offer)
 		goto out;
 	}
 
-	if (offer) {
-		err = peerconnection_decode_descr(g_pc, offer, true);
-		if (err) {
-			warning("demo: decode offer failed (%m)\n", err);
-			goto out;
-		}
-	}
 
  out:
 	if (err)
@@ -235,8 +231,8 @@ static int create_session(struct mbuf *offer)
 
 static int handle_put_sdp(const struct http_msg *msg)
 {
-	struct session_description sd = {"",NULL};
-	struct mbuf *offer = NULL;
+	struct session_description sd = {-1, NULL};
+	bool got_offer = false;
 	int err = 0;
 
 	info("demo: handle PUT sdp: content is '%r/%r'\n",
@@ -250,16 +246,18 @@ static int handle_put_sdp(const struct http_msg *msg)
 			if (err)
 				goto out;
 
-			if (0 == str_casecmp(sd.type, "offer")) {
+			if (sd.type == SDP_OFFER) {
 
-				offer = sd.sdp;
+				got_offer = true;
 			}
-			else if (0 == str_casecmp(sd.type, "answer")) {
+			else if (sd.type == SDP_ANSWER) {
 
-				err = peerconnection_decode_descr(g_pc, sd.sdp,
-							      false);
+				err = peerconnection_set_remote_descr(g_pc,
+								      &sd);
 				if (err) {
-					warning("decode error (%m)\n", err);
+					warning("demo: set remote descr error"
+						" (%m)\n", err);
+					goto out;
 				}
 
 				err = peerconnection_start_ice(g_pc);
@@ -272,7 +270,7 @@ static int handle_put_sdp(const struct http_msg *msg)
 			else {
 				warning("invalid session description type:"
 					" %s\n",
-					sd.type);
+					sdptype_name(sd.type));
 				err = EPROTO;
 				goto out;
 			}
@@ -284,9 +282,19 @@ static int handle_put_sdp(const struct http_msg *msg)
 			goto out;
 		}
 
-		err = create_session(offer);
+		err = create_session(sd.type);
 		if (err)
 			goto out;
+
+		if (got_offer) {
+
+			err = peerconnection_set_remote_descr(g_pc, &sd);
+			if (err) {
+				warning("demo: decode offer failed (%m)\n",
+					err);
+				goto out;
+			}
+		}
 	}
 
 out:
