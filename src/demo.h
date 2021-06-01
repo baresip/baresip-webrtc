@@ -21,6 +21,17 @@ struct session_description;
  * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection
  */
 
+
+/* RTCPeerConnection.signalingState */
+
+enum signaling_st {
+
+	SS_STABLE,
+	SS_HAVE_LOCAL_OFFER,
+	SS_HAVE_REMOTE_OFFER
+};
+
+
 struct peer_connection;
 
 typedef void (peerconnection_gather_h)(void *arg);
@@ -51,7 +62,7 @@ int peerconnection_create_offer(struct peer_connection *sess,
 int peerconnection_create_answer(struct peer_connection *sess,
 				 struct mbuf **mb);
 int peerconnection_start_ice(struct peer_connection *pc);
-bool peerconnection_got_offer(const struct peer_connection *pc);
+enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
 void peerconnection_close(struct peer_connection *pc);
 
 

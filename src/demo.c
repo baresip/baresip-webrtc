@@ -102,12 +102,14 @@ static int reply_descr(enum sdp_type type, struct mbuf *mb_sdp)
 static void peerconnection_gather_handler(void *arg)
 {
 	struct mbuf *mb_sdp = NULL;
+	enum signaling_st ss;
 	enum sdp_type type;
 	bool send_offer;
 	int err;
 	(void)arg;
 
-	send_offer = !peerconnection_got_offer(g_pc);
+	ss = peerconnection_signaling(g_pc);
+	send_offer = ss != SS_HAVE_REMOTE_OFFER;
 	type = send_offer ? SDP_OFFER : SDP_ANSWER;
 
 	info("demo: session gathered -- send %s\n", sdptype_name(type));
@@ -219,7 +221,6 @@ static int create_session(enum sdp_type type)
 		warning("demo: add_video failed (%m)\n", err);
 		goto out;
 	}
-
 
  out:
 	if (err)

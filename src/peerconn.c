@@ -21,7 +21,7 @@ struct peer_connection {
 	struct menc_sess *mencs;
 	struct media_ctx *ctx;
 	char cname[16];
-	bool got_offer;
+	enum signaling_st signaling_state;
 	peerconnection_gather_h *gatherh;
 	peerconnection_estab_h *estabh;
 	peerconnection_close_h *closeh;
@@ -34,12 +34,27 @@ struct peer_connection {
 };
 
 
+static const char *signaling_state_name(enum signaling_st ss)
+{
+	switch (ss) {
+
+	case SS_STABLE:            return "stable";
+	case SS_HAVE_LOCAL_OFFER:  return "have-local-offer";
+	case SS_HAVE_REMOTE_OFFER: return "have-remote-offer";
+	default: return "???";
+	}
+}
+
+
 static void pc_summary(const struct peer_connection *pc)
 {
 	struct le *le;
 	size_t i = 0;
 
 	info("*** RTCPeerConnection summary ***\n");
+
+	info("signaling_state: %s\n",
+	     signaling_state_name(pc->signaling_state));
 
 	info("steps:\n");
 	info(".. gather:   %d\n", pc->gather_ok);
@@ -300,12 +315,14 @@ int peerconnection_new(struct peer_connection **pcp,
 	if (!mnat || !menc)
 		return EINVAL;
 
-	info("peerconnection: create: laddr = %j, got_offer=%d\n",
+	info("peerconnection: new: laddr = %j, got_offer=%d\n",
 	     laddr, got_offer);
 
 	pc = mem_zalloc(sizeof(*pc), destructor);
 	if (!pc)
 		return ENOMEM;
+
+	pc->signaling_state = SS_STABLE;
 
 	/* RFC 7022 */
 	rand_str(pc->cname, sizeof(pc->cname));
@@ -351,8 +368,6 @@ int peerconnection_new(struct peer_connection **pcp,
 		}
 	}
 
-	pc->got_offer = got_offer;
-
 	pc->gatherh = gatherh;
 	pc->estabh = estabh;
 	pc->closeh = closeh;
@@ -374,12 +389,15 @@ int peerconnection_add_audio(struct peer_connection *pc,
 {
 	struct media_track *media;
 	struct stream *strm;
+	bool offerer;
 	int err;
 
 	if (!pc || !cfg || !aucodecl)
 		return EINVAL;
 
 	info("peerconnection: add audio (codecs=%u)\n", list_count(aucodecl));
+
+	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
 	media = media_track_add(&pc->medial, pc, MEDIA_KIND_AUDIO);
 
@@ -388,7 +406,7 @@ int peerconnection_add_audio(struct peer_connection *pc,
 			  NULL, pc->sdp, 0,
 			  pc->mnat, pc->mnats,
 			  pc->menc, pc->mencs,
-			  20, aucodecl, !pc->got_offer,
+			  20, aucodecl, offerer,
 			  audio_event_handler, NULL,
 			  audio_err_handler, pc);
 	if (err) {
@@ -413,12 +431,15 @@ int peerconnection_add_video(struct peer_connection *pc,
 {
 	struct media_track *media;
 	struct stream *strm;
+	bool offerer;
 	int err;
 
 	if (!pc || !cfg || !vidcodecl)
 		return EINVAL;
 
 	info("peerconnection: add video (codecs=%u)\n", list_count(vidcodecl));
+
+	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
 	media = media_track_add(&pc->medial, pc, MEDIA_KIND_VIDEO);
 
@@ -430,7 +451,7 @@ int peerconnection_add_video(struct peer_connection *pc,
 			  pc->menc, pc->mencs,
 			  NULL, vidcodecl,
 			  NULL,
-			  !pc->got_offer,
+			  offerer,
 			  video_err_handler, pc);
 	if (err) {
 		warning("peerconnection: video alloc failed (%m)\n", err);
@@ -464,6 +485,13 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 	info("peerconnection: set remote description. type=%s\n",
 	     sdptype_name(sd->type));
 
+	if (pc->signaling_state == SS_HAVE_REMOTE_OFFER) {
+		warning("peerconnection: set remote descr:"
+			" invalid signaling state (%s)\n",
+			signaling_state_name(pc->signaling_state));
+		return EPROTO;
+	}
+
 	offer = (sd->type == SDP_OFFER);
 
 	if (LEVEL_DEBUG == log_level_get()) {
@@ -471,6 +499,16 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 		info("%b\n", (sd->sdp)->buf, (sd->sdp)->end);
 		info("- - - - - - -\n");
 	}
+
+	re_printf(".... ss: %s\n", signaling_state_name(pc->signaling_state));
+
+	if (offer)
+		pc->signaling_state = SS_HAVE_REMOTE_OFFER;
+	else
+		pc->signaling_state = SS_STABLE;
+
+	re_printf(".... ss: %s\n", signaling_state_name(pc->signaling_state));
+
 
 	err = sdp_decode(pc->sdp, sd->sdp, offer);
 	if (err) {
@@ -516,12 +554,19 @@ int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 	if (!pc)
 		return EINVAL;
 
+	info("peerconnection: create offer\n");
+
 	if (!pc->gather_ok) {
 		warning("peerconnection: sdp: ice not gathered\n");
 		return EPROTO;
 	}
 
-	info("peerconnection: create offer\n");
+	if (pc->signaling_state != SS_STABLE) {
+		warning("peerconnection: create offer:"
+			" invalid signaling state (%s)\n",
+			signaling_state_name(pc->signaling_state));
+		return EPROTO;
+	}
 
 	err = sdp_encode(mb, pc->sdp, true);
 	if (err)
@@ -532,6 +577,8 @@ int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 		info("%b\n", (*mb)->buf, (*mb)->end);
 		info("- - - - - - -\n");
 	}
+
+	pc->signaling_state = SS_HAVE_LOCAL_OFFER;
 
 	pc->sdp_enc_ok = true;
 
@@ -554,9 +601,18 @@ int peerconnection_create_answer(struct peer_connection *pc,
 
 	info("peerconnection: create answer\n");
 
+	if (pc->signaling_state != SS_HAVE_REMOTE_OFFER) {
+		warning("peerconnection: create answer:"
+			" invalid signaling state (%s)\n",
+			signaling_state_name(pc->signaling_state));
+		return EPROTO;
+	}
+
 	err = sdp_encode(mb, pc->sdp, false);
 	if (err)
 		return err;
+
+	pc->signaling_state = SS_STABLE;
 
 	if (LEVEL_DEBUG == log_level_get()) {
 		info("- - answer - -\n");
@@ -597,10 +653,9 @@ int peerconnection_start_ice(struct peer_connection *pc)
 }
 
 
-/* todo: replace with signalingstate */
-bool peerconnection_got_offer(const struct peer_connection *pc)
+enum signaling_st peerconnection_signaling(const struct peer_connection *pc)
 {
-	return pc ? pc->got_offer : false;
+	return pc ? pc->signaling_state : SS_STABLE;
 }
 
 

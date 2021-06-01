@@ -23,7 +23,7 @@ int session_description_encode(struct odict **odp,
 	if (!odp || !sdp)
 		return EINVAL;
 
-	info("descr: encode: type='%s'\n", type);
+	info("descr: encode: type='%s'\n", sdptype_name(type));
 
 	err = mbuf_strdup(sdp, &str, sdp->end);
 	if (err)
