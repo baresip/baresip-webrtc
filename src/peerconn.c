@@ -296,27 +296,27 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 
 
 int peerconnection_new(struct peer_connection **pcp,
-		       const struct config *cfg,
-		       const struct sa *laddr,
+		       const struct configuration *config,
 		       bool got_offer,
 		       const struct mnat *mnat, const struct menc *menc,
-		       struct stun_uri *stun_srv,
-		       const char *stun_user, const char *stun_pass,
 		       peerconnection_gather_h *gatherh,
 		       peerconnection_estab_h *estabh,
 		       peerconnection_close_h *closeh, void *arg)
 {
 	struct peer_connection *pc;
+	struct sa laddr;
 	int err;
 
-	if (!pcp || !cfg || !laddr)
+	if (!pcp)
 		return EINVAL;
 
 	if (!mnat || !menc)
 		return EINVAL;
 
+	sa_set_str(&laddr, "127.0.0.1", 0);
+
 	info("peerconnection: new: laddr = %j, got_offer=%d\n",
-	     laddr, got_offer);
+	     &laddr, got_offer);
 
 	pc = mem_zalloc(sizeof(*pc), destructor);
 	if (!pc)
@@ -328,10 +328,10 @@ int peerconnection_new(struct peer_connection **pcp,
 	rand_str(pc->cname, sizeof(pc->cname));
 
 	pc->stream_prm.use_rtp = true;
-	pc->stream_prm.af      = sa_af(laddr);
+	pc->stream_prm.af      = sa_af(&laddr);
 	pc->stream_prm.cname   = pc->cname;
 
-	err = sdp_session_alloc(&pc->sdp, laddr);
+	err = sdp_session_alloc(&pc->sdp, &laddr);
 	if (err)
 		goto out;
 
@@ -343,9 +343,9 @@ int peerconnection_new(struct peer_connection **pcp,
 
 		err = mnat->sessh(&pc->mnats, mnat,
 				  net_dnsc(baresip_network()),
-				  sa_af(laddr),
-				  stun_srv,
-				  stun_user, stun_pass,
+				  sa_af(&laddr),
+				  config->ice_server,
+				  config->stun_user, config->stun_pass,
 				  pc->sdp, !got_offer,
 				  mnat_estab_handler, pc);
 		if (err) {

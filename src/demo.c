@@ -13,8 +13,6 @@
 enum {HTTP_PORT = 9000};
 
 
-static struct stun_uri *stun_srv;
-
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
@@ -23,10 +21,7 @@ static const struct mnat *mnat;
 static const struct menc *menc;
 
 
-static struct {
-	const char *stun_user;
-	const char *stun_pass;
-} g;
+static struct configuration pc_config;
 
 
 static const char *extension_to_mimetype(const char *ext)
@@ -183,14 +178,11 @@ static void peerconnection_close_handler(int err, void *arg)
 /* RemoteDescription */
 static int create_session(enum sdp_type type)
 {
-	struct sa laddr;
 	const struct config *config = conf_config();
 	bool got_offer = (type == SDP_OFFER);
 	int err;
 
 	info("demo: create session (type=%s)\n", sdptype_name(type));
-
-	sa_set_str(&laddr, "127.0.0.1", 0);
 
 	if (g_pc) {
 		err = EBUSY;
@@ -198,10 +190,7 @@ static int create_session(enum sdp_type type)
 	}
 
 	/* create a new session object, send SDP to it */
-	err = peerconnection_new(&g_pc, config, &laddr,
-				 got_offer, mnat, menc,
-				 stun_srv,
-				 g.stun_user, g.stun_pass,
+	err = peerconnection_new(&g_pc, &pc_config, got_offer, mnat, menc,
 				 peerconnection_gather_handler,
 				 peerconnection_estab_handler,
 				 peerconnection_close_handler, NULL);
@@ -407,7 +396,6 @@ static void http_req_handler(struct http_conn *conn,
  out:
 	if (err)
 		http_ereply(conn, 500, "Server Error");
-
 }
 
 
@@ -421,7 +409,7 @@ int demo_init(const char *ice_server,
 	if (ice_server) {
 		pl_set_str(&srv, ice_server);
 
-		err = stunuri_decode(&stun_srv, &srv);
+		err = stunuri_decode(&pc_config.ice_server, &srv);
 		if (err) {
 			warning("demo: invalid iceserver '%r' (%m)\n",
 				&srv, err);
@@ -429,8 +417,8 @@ int demo_init(const char *ice_server,
 		}
 	}
 
-	g.stun_user = stun_user;
-	g.stun_pass = stun_pass;
+	pc_config.stun_user = stun_user;
+	pc_config.stun_pass = stun_pass;
 
 	mnat = mnat_find(baresip_mnatl(), "ice");
 	if (!mnat) {
@@ -472,7 +460,7 @@ int demo_close(void)
 	conn_pending = mem_deref(conn_pending);
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
-	stun_srv = mem_deref(stun_srv);
+	pc_config.ice_server = mem_deref(pc_config.ice_server);
 
 	return 0;
 }
