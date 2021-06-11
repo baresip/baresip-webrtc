@@ -29,7 +29,7 @@ const configuration = {
 
 	iceServers: [
 	{
-		'urls': 'stun:stun.l.google.com:19302'
+		urls: 'stun:stun.l.google.com:19302'
 	}
 	],
 
@@ -72,6 +72,14 @@ function connect_call()
 			send_put_sdp(json);
 		}
 	};
+
+	pc.onicecandidateerror = function(event) {
+
+		disconnect_call();
+
+		alert("ICE Candidate Error: " +
+		      event.errorCode + " " + event.errorText);
+	}
 
 	pc.ontrack = function(event) {
 
@@ -118,8 +126,9 @@ function connect_call()
 
 			send_post_connect();
 		})
-		.catch(function(err) {
-			/* handle the error */
+		.catch(function(error) {
+
+			alert("Get User Media: " + error);
 		});
 }
 
