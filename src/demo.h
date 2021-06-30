@@ -23,9 +23,7 @@ struct session_description;
 
 
 /* RTCPeerConnection.signalingState */
-
 enum signaling_st {
-
 	SS_STABLE,
 	SS_HAVE_LOCAL_OFFER,
 	SS_HAVE_REMOTE_OFFER
@@ -36,7 +34,7 @@ enum signaling_st {
 struct configuration {
 	struct stun_uri *ice_server;
 	const char *stun_user;
-	const char *stun_pass;
+	const char *credential;
 };
 
 struct peer_connection;
@@ -76,15 +74,16 @@ void peerconnection_close(struct peer_connection *pc);
 
 int load_file(struct mbuf *mb, const char *filename);
 const char *file_extension(const char *filename);
+const char *extension_to_mimetype(const char *ext);
 
 
 /*
  * Demo
  */
 
-int demo_init(const char *ice_server,
-	      const char *stun_user, const char *stun_pass);
-int demo_close(void);
+int  demo_init(const char *ice_server,
+	       const char *stun_user, const char *stun_pass);
+void demo_close(void);
 
 
 /*
@@ -92,8 +91,8 @@ int demo_close(void);
  */
 
 enum sdp_type {
-	SDP_ANSWER,
-	SDP_OFFER
+	SDP_OFFER,
+	SDP_ANSWER
 };
 
 /*

@@ -10,6 +10,9 @@
 #include "demo.h"
 
 
+enum { AUDIO_PTIME = 20 };
+
+
 struct peer_connection {
 	struct stream_param stream_prm;
 	struct list streaml;
@@ -19,7 +22,7 @@ struct peer_connection {
 	struct mnat_sess *mnats;
 	const struct menc *menc;
 	struct menc_sess *mencs;
-	struct media_ctx *ctx;
+	struct media_ctx *ctx;    /* XXX: remove */
 	char cname[16];
 	enum signaling_st signaling_state;
 	peerconnection_gather_h *gatherh;
@@ -150,19 +153,10 @@ static void pc_close(struct peer_connection *pc, int err)
 }
 
 
-static void audio_event_handler(int key, bool end, void *arg)
+static void audio_error_handler(int err, const char *str, void *arg)
 {
 	struct peer_connection *pc = arg;
-	(void)pc;
-	(void)end;
-
-	info("peerconnection: recv DTMF event: key=%d ('%c')\n", key, key);
-}
-
-
-static void audio_err_handler(int err, const char *str, void *arg)
-{
-	struct peer_connection *pc = arg;
+	/* todo: map to media-track instead */
 
 	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
@@ -170,7 +164,7 @@ static void audio_err_handler(int err, const char *str, void *arg)
 }
 
 
-static void video_err_handler(int err, const char *str, void *arg)
+static void video_error_handler(int err, const char *str, void *arg)
 {
 	struct peer_connection *pc = arg;
 
@@ -345,7 +339,7 @@ int peerconnection_new(struct peer_connection **pcp,
 				  net_dnsc(baresip_network()),
 				  sa_af(&laddr),
 				  config->ice_server,
-				  config->stun_user, config->stun_pass,
+				  config->stun_user, config->credential,
 				  pc->sdp, !got_offer,
 				  mnat_estab_handler, pc);
 		if (err) {
@@ -406,9 +400,9 @@ int peerconnection_add_audio(struct peer_connection *pc,
 			  NULL, pc->sdp, 0,
 			  pc->mnat, pc->mnats,
 			  pc->menc, pc->mencs,
-			  20, aucodecl, offerer,
-			  audio_event_handler, NULL,
-			  audio_err_handler, pc);
+			  AUDIO_PTIME, aucodecl, offerer,
+			  NULL, NULL,
+			  audio_error_handler, pc);
 	if (err) {
 		warning("peerconnection: audio alloc failed (%m)\n", err);
 		return err;
@@ -418,6 +412,7 @@ int peerconnection_add_audio(struct peer_connection *pc,
 
 	strm = audio_strm(media->u.au);
 
+	/* todo: move to mediatrack.c ? */
 	stream_set_session_handlers(strm, mnatconn_handler, rtpestab_handler,
 				    rtcp_handler, stream_error_handler, media);
 
@@ -452,7 +447,7 @@ int peerconnection_add_video(struct peer_connection *pc,
 			  NULL, vidcodecl,
 			  NULL,
 			  offerer,
-			  video_err_handler, pc);
+			  video_error_handler, pc);
 	if (err) {
 		warning("peerconnection: video alloc failed (%m)\n", err);
 		return err;
@@ -500,15 +495,10 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 		info("- - - - - - -\n");
 	}
 
-	re_printf(".... ss: %s\n", signaling_state_name(pc->signaling_state));
-
 	if (offer)
 		pc->signaling_state = SS_HAVE_REMOTE_OFFER;
 	else
 		pc->signaling_state = SS_STABLE;
-
-	re_printf(".... ss: %s\n", signaling_state_name(pc->signaling_state));
-
 
 	err = sdp_decode(pc->sdp, sd->sdp, offer);
 	if (err) {
@@ -547,6 +537,9 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 }
 
 
+/*
+ * RTCPeerConnection.createOffer()
+ */
 int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 {
 	int err;
@@ -586,6 +579,9 @@ int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 }
 
 
+/*
+ * RTCPeerConnection.createAnswer()
+ */
 int peerconnection_create_answer(struct peer_connection *pc,
 				 struct mbuf **mb)
 {

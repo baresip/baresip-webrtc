@@ -10,7 +10,10 @@
 #include "demo.h"
 
 
-enum {HTTP_PORT = 9000};
+enum {
+	HTTP_PORT  = 9000,
+	HTTPS_PORT = 9001
+};
 
 
 static struct http_sock *httpsock;
@@ -22,15 +25,6 @@ static const struct menc *menc;
 
 
 static struct configuration pc_config;
-
-
-static const char *extension_to_mimetype(const char *ext)
-{
-	if (0 == str_casecmp(ext, "html")) return "text/html";
-	if (0 == str_casecmp(ext, "js"))   return "text/javascript";
-
-	return "application/octet-stream";  /* default */
-}
 
 
 static void reply_fmt(struct http_conn *conn, const char *ctype,
@@ -99,30 +93,28 @@ static void peerconnection_gather_handler(void *arg)
 	struct mbuf *mb_sdp = NULL;
 	enum signaling_st ss;
 	enum sdp_type type;
-	bool send_offer;
 	int err;
 	(void)arg;
 
 	ss = peerconnection_signaling(g_pc);
-	send_offer = ss != SS_HAVE_REMOTE_OFFER;
-	type = send_offer ? SDP_OFFER : SDP_ANSWER;
+	type = (ss != SS_HAVE_REMOTE_OFFER) ? SDP_OFFER : SDP_ANSWER;
 
 	info("demo: session gathered -- send %s\n", sdptype_name(type));
 
-	if (send_offer)
+	if (type == SDP_OFFER)
 		err = peerconnection_create_offer(g_pc, &mb_sdp);
 	else
 		err = peerconnection_create_answer(g_pc, &mb_sdp);
 	if (err)
-		goto out;
+		return;
 
 	err = reply_descr(type, mb_sdp);
 	if (err) {
-		warning("reply error: %m\n", err);
+		warning("demo: reply error: %m\n", err);
 		goto out;
 	}
 
-	if (!send_offer) {
+	if (type == SDP_ANSWER) {
 
 		err = peerconnection_start_ice(g_pc);
 		if (err) {
@@ -219,13 +211,13 @@ static int create_session(enum sdp_type type)
 }
 
 
-static int handle_put_sdp(const struct http_msg *msg)
+static int handle_post_sdp(const struct http_msg *msg)
 {
 	struct session_description sd = {-1, NULL};
 	bool got_offer = false;
 	int err = 0;
 
-	info("demo: handle PUT sdp: content is '%r/%r'\n",
+	info("demo: handle POST sdp: content is '%r/%r'\n",
 	     &msg->ctyp.type, &msg->ctyp.subtype);
 
 	if (msg->clen) {
@@ -258,7 +250,8 @@ static int handle_put_sdp(const struct http_msg *msg)
 				}
 			}
 			else {
-				warning("invalid session description type:"
+				warning("demo: invalid session description"
+					" type:"
 					" %s\n",
 					sdptype_name(sd.type));
 				err = EPROTO;
@@ -365,10 +358,10 @@ static void http_req_handler(struct http_conn *conn,
 			   "Access-Control-Allow-Origin: *\r\n"
 			   "\r\n");
 	}
-	else if (0 == pl_strcasecmp(&msg->met, "PUT") &&
+	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
 
-		err = handle_put_sdp(msg);
+		err = handle_post_sdp(msg);
 		if (err)
 			goto out;
 
@@ -389,7 +382,7 @@ static void http_req_handler(struct http_conn *conn,
 			   "\r\n");
 	}
 	else {
-		warning("not found: %r %r\n", &msg->met, &msg->path);
+		warning("demo: not found: %r %r\n", &msg->met, &msg->path);
 		http_ereply(conn, 404, "Not Found");
 	}
 
@@ -400,10 +393,10 @@ static void http_req_handler(struct http_conn *conn,
 
 
 int demo_init(const char *ice_server,
-	      const char *stun_user, const char *stun_pass)
+	      const char *stun_user, const char *credential)
 {
 	struct pl srv;
-	struct sa laddr;
+	struct sa laddr, laddrs;
 	int err;
 
 	if (ice_server) {
@@ -418,7 +411,7 @@ int demo_init(const char *ice_server,
 	}
 
 	pc_config.stun_user = stun_user;
-	pc_config.stun_pass = stun_pass;
+	pc_config.credential = credential;
 
 	mnat = mnat_find(baresip_mnatl(), "ice");
 	if (!mnat) {
@@ -433,34 +426,30 @@ int demo_init(const char *ice_server,
 	}
 
 	sa_set_str(&laddr, "0.0.0.0", HTTP_PORT);
+	sa_set_str(&laddrs, "0.0.0.0", HTTPS_PORT);
 
-	err = http_listen(&httpsock, &laddr,
+	err = http_listen(&httpsock, &laddr, http_req_handler, NULL);
+	if (err)
+		return err;
+
+	err = https_listen(&httpssock, &laddrs, "./share/cert.pem",
 			   http_req_handler, NULL);
 	if (err)
 		return err;
 
-	info("demo: listening on HTTP %J\n", &laddr);
-
-	sa_set_port(&laddr, sa_port(&laddr) + 1);
-
-	err = https_listen(&httpssock, &laddr, "./share/cert.pem",
-			   http_req_handler, NULL);
-	if (err)
-		return err;
-
-	info("demo: listening on HTTPS %J\n", &laddr);
+	info("demo: listening on:\n");
+	info("    http://localhost:%u/\n", sa_port(&laddr));
+	info("    https://localhost:%u/\n", sa_port(&laddrs));
 
 	return 0;
 }
 
 
-int demo_close(void)
+void demo_close(void)
 {
 	g_pc = mem_deref(g_pc);
 	conn_pending = mem_deref(conn_pending);
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
 	pc_config.ice_server = mem_deref(pc_config.ice_server);
-
-	return 0;
 }

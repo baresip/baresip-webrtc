@@ -69,7 +69,7 @@ function connect_call()
 			const sd = pc.localDescription;
 			const json = JSON.stringify(sd);
 
-			send_put_sdp(json);
+			send_post_sdp(json);
 		}
 	};
 
@@ -169,14 +169,14 @@ function send_post_connect()
 }
 
 
-function send_put_sdp(descr)
+function send_post_sdp(descr)
 {
 	var xhr = new XMLHttpRequest();
 	const loc = self.location;
 
-	console.log("send put sdp: " + loc);
+	console.log("send post sdp: " + loc);
 
-	xhr.open("PUT", '' + loc + 'sdp', true);
+	xhr.open("POST", '' + loc + 'sdp', true);
 	xhr.setRequestHeader("Content-Type", "application/json");
 
 	xhr.onreadystatechange = function() {
