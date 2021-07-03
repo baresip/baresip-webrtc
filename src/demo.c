@@ -16,15 +16,67 @@ enum {
 };
 
 
+struct session {
+	struct le le;
+	struct peer_connection *pc;
+	char *id;
+};
+
+
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static struct http_conn *conn_pending;
-static struct peer_connection *g_pc;
 static const struct mnat *mnat;
 static const struct menc *menc;
+static uint32_t session_counter;
 
 
 static struct configuration pc_config;
+static struct list sessl;
+
+
+static void destructor(void *data)
+{
+	struct session *sess = data;
+
+	list_unlink(&sess->le);
+	mem_deref(sess->pc);
+	mem_deref(sess->id);
+}
+
+
+static int session_new(struct session **sessp)
+{
+	struct session *sess;
+
+	sess = mem_zalloc(sizeof(*sess), destructor);
+
+	/* generate a unique session id */
+
+	re_sdprintf(&sess->id, "%u", ++session_counter);
+
+	list_append(&sessl, &sess->le, sess);
+
+	*sessp = sess;
+
+	return 0;
+}
+
+
+static struct session *session_lookup(const struct pl *sessid)
+{
+	struct le *le;
+
+	for (le = sessl.head; le; le = le->next) {
+
+		struct session *sess = le->data;
+
+		if (0 == pl_strcasecmp(sessid, sess->id))
+			return sess;
+	}
+
+	return NULL;
+}
 
 
 static void reply_fmt(struct http_conn *conn, const char *ctype,
@@ -90,21 +142,21 @@ static int reply_descr(enum sdp_type type, struct mbuf *mb_sdp)
 
 static void peerconnection_gather_handler(void *arg)
 {
+	struct session *sess = arg;
 	struct mbuf *mb_sdp = NULL;
 	enum signaling_st ss;
 	enum sdp_type type;
 	int err;
-	(void)arg;
 
-	ss = peerconnection_signaling(g_pc);
+	ss = peerconnection_signaling(sess->pc);
 	type = (ss != SS_HAVE_REMOTE_OFFER) ? SDP_OFFER : SDP_ANSWER;
 
 	info("demo: session gathered -- send %s\n", sdptype_name(type));
 
 	if (type == SDP_OFFER)
-		err = peerconnection_create_offer(g_pc, &mb_sdp);
+		err = peerconnection_create_offer(sess->pc, &mb_sdp);
 	else
-		err = peerconnection_create_answer(g_pc, &mb_sdp);
+		err = peerconnection_create_answer(sess->pc, &mb_sdp);
 	if (err)
 		return;
 
@@ -116,7 +168,7 @@ static void peerconnection_gather_handler(void *arg)
 
 	if (type == SDP_ANSWER) {
 
-		err = peerconnection_start_ice(g_pc);
+		err = peerconnection_start_ice(sess->pc);
 		if (err) {
 			warning("demo: failed to start ice (%m)\n", err);
 			goto out;
@@ -158,17 +210,17 @@ static void peerconnection_estab_handler(struct media_track *media, void *arg)
 
 static void peerconnection_close_handler(int err, void *arg)
 {
-	(void)arg;
+	struct session *sess = arg;
 
 	warning("demo: session closed (%m)\n", err);
 
 	/* todo: notify client that session was closed */
-	g_pc = mem_deref(g_pc);
+	sess->pc = mem_deref(sess->pc);
 }
 
 
 /* RemoteDescription */
-static int create_session(enum sdp_type type)
+static int create_pc(struct session *sess, enum sdp_type type)
 {
 	const struct config *config = conf_config();
 	bool got_offer = (type == SDP_OFFER);
@@ -176,42 +228,34 @@ static int create_session(enum sdp_type type)
 
 	info("demo: create session (type=%s)\n", sdptype_name(type));
 
-	if (g_pc) {
-		err = EBUSY;
-		goto out;
-	}
-
 	/* create a new session object, send SDP to it */
-	err = peerconnection_new(&g_pc, &pc_config, got_offer, mnat, menc,
+	err = peerconnection_new(&sess->pc, &pc_config, got_offer, mnat, menc,
 				 peerconnection_gather_handler,
 				 peerconnection_estab_handler,
-				 peerconnection_close_handler, NULL);
+				 peerconnection_close_handler, sess);
 	if (err) {
 		warning("demo: session alloc failed (%m)\n", err);
 		goto out;
 	}
 
-	err = peerconnection_add_audio(g_pc, config, baresip_aucodecl());
+	err = peerconnection_add_audio(sess->pc, config, baresip_aucodecl());
 	if (err) {
 		warning("demo: add_audio failed (%m)\n", err);
 		goto out;
 	}
 
-	err = peerconnection_add_video(g_pc, config, baresip_vidcodecl());
+	err = peerconnection_add_video(sess->pc, config, baresip_vidcodecl());
 	if (err) {
 		warning("demo: add_video failed (%m)\n", err);
 		goto out;
 	}
 
  out:
-	if (err)
-		g_pc = mem_deref(g_pc);
-
 	return err;
 }
 
 
-static int handle_post_sdp(const struct http_msg *msg)
+static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 {
 	struct session_description sd = {-1, NULL};
 	bool got_offer = false;
@@ -234,7 +278,7 @@ static int handle_post_sdp(const struct http_msg *msg)
 			}
 			else if (sd.type == SDP_ANSWER) {
 
-				err = peerconnection_set_remote_descr(g_pc,
+				err = peerconnection_set_remote_descr(sess->pc,
 								      &sd);
 				if (err) {
 					warning("demo: set remote descr error"
@@ -242,7 +286,7 @@ static int handle_post_sdp(const struct http_msg *msg)
 					goto out;
 				}
 
-				err = peerconnection_start_ice(g_pc);
+				err = peerconnection_start_ice(sess->pc);
 				if (err) {
 					warning("demo: failed to start ice"
 						" (%m)\n", err);
@@ -265,13 +309,15 @@ static int handle_post_sdp(const struct http_msg *msg)
 			goto out;
 		}
 
-		err = create_session(sd.type);
-		if (err)
-			goto out;
+		if (!sess->pc) {
+			err = create_pc(sess, sd.type);
+			if (err)
+				goto out;
+		}
 
 		if (got_offer) {
 
-			err = peerconnection_set_remote_descr(g_pc, &sd);
+			err = peerconnection_set_remote_descr(sess->pc, &sd);
 			if (err) {
 				warning("demo: decode offer failed (%m)\n",
 					err);
@@ -334,6 +380,7 @@ static void http_req_handler(struct http_conn *conn,
 			     const struct http_msg *msg, void *arg)
 {
 	struct pl path = PL("/index.html");
+	struct session *sess;
 	int err = 0;
 	(void)arg;
 
@@ -350,36 +397,77 @@ static void http_req_handler(struct http_conn *conn,
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/connect")) {
 
-		/* TODO: generate a unique session id */
+		err = session_new(&sess);
+		if (err)
+			goto out;
 
 		/* sync reply */
 		http_reply(conn, 200, "OK",
 			   "Content-Length: 0\r\n"
 			   "Access-Control-Allow-Origin: *\r\n"
-			   "\r\n");
+			   "Session-ID: %s\r\n"
+			   "\r\n", sess->id);
 	}
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
 
-		err = handle_post_sdp(msg);
-		if (err)
-			goto out;
+		const struct http_hdr *hdr;
 
-		/* async reply */
-		mem_deref(conn_pending);
-		conn_pending = mem_ref(conn);
+		hdr = http_msg_xhdr(msg, "Session-ID");
+		if (!hdr) {
+			warning("demo: no Session-ID header\n");
+			err = EPROTO;
+			goto out;
+		}
+
+		info(".... sdp: session-id '%r'\n", &hdr->val);
+
+		sess = session_lookup(&hdr->val);
+		if (sess) {
+			err = handle_post_sdp(sess, msg);
+			if (err)
+				goto out;
+
+			/* async reply */
+			mem_deref(conn_pending);
+			conn_pending = mem_ref(conn);
+		}
+		else {
+			warning("demo: sdp: session not found (%r)\n",
+				&hdr->val);
+			http_ereply(conn, 404, "Session Not Found");
+			return;
+		}
 	}
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/disconnect")) {
 
+		const struct http_hdr *hdr;
+
 		info("demo: disconnect\n");
 
-		g_pc = mem_deref(g_pc);
+		hdr = http_msg_xhdr(msg, "Session-ID");
+		if (!hdr) {
+			warning("demo: no Session-ID header\n");
+			err = EPROTO;
+			goto out;
+		}
 
-		http_reply(conn, 200, "OK",
-			   "Content-Length: 0\r\n"
-			   "Access-Control-Allow-Origin: *\r\n"
-			   "\r\n");
+		sess = session_lookup(&hdr->val);
+		if (sess) {
+			info("demo: closing session %s\n", sess->id);
+			mem_deref(sess);
+
+			http_reply(conn, 200, "OK",
+				   "Content-Length: 0\r\n"
+				   "Access-Control-Allow-Origin: *\r\n"
+				   "\r\n");
+		}
+		else {
+			warning("demo: session not found (%r)\n", &hdr->val);
+			http_ereply(conn, 404, "Session Not Found");
+			return;
+		}
 	}
 	else {
 		warning("demo: not found: %r %r\n", &msg->met, &msg->path);
@@ -447,7 +535,8 @@ int demo_init(const char *ice_server,
 
 void demo_close(void)
 {
-	g_pc = mem_deref(g_pc);
+	list_flush(&sessl);
+
 	conn_pending = mem_deref(conn_pending);
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);

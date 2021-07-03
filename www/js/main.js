@@ -18,6 +18,7 @@ disconnectButton.disabled = true;
 
 let pc;           /* PeerConnection */
 let localStream;  /* MediaStream */
+let session_id;   /* String */
 
 
 const configuration = {
@@ -146,7 +147,17 @@ function send_post_connect()
 	xhr.open("POST", '' + loc + 'connect', true);
 
 	xhr.onreadystatechange = function() {
-		if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+
+		if (this.readyState === XMLHttpRequest.DONE &&
+		    this.status === 200) {
+
+			const sessid = xhr.getResponseHeader("Session-ID");
+
+			console.log(".... session: %s", sessid);
+
+			/* Save the session ID */
+			session_id = sessid;
+
 			pc.createOffer(offerOptions)
 			.then(function (desc) {
 				console.log("got local description: %s", desc.type);
@@ -178,9 +189,13 @@ function send_post_sdp(descr)
 
 	xhr.open("POST", '' + loc + 'sdp', true);
 	xhr.setRequestHeader("Content-Type", "application/json");
+	xhr.setRequestHeader("Session-ID", session_id);
 
 	xhr.onreadystatechange = function() {
-		if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+		if (this.readyState === XMLHttpRequest.DONE &&
+		    this.status === 200) {
+
+			console.log("post sdp: 200 ok");
 
 			const descr = JSON.parse(xhr.response);
 
@@ -214,5 +229,8 @@ function disconnect_call()
 	// send a message to the server
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", '' + self.location + 'disconnect', true);
+	xhr.setRequestHeader("Session-ID", session_id);
 	xhr.send();
+
+	session_id = null;
 }
