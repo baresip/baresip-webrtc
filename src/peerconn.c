@@ -218,7 +218,7 @@ static void menc_event_handler(enum menc_event event,
 		media->dtls_ok = true;
 
 		stream_set_secure(strm, true);
-		stream_start(strm);
+		stream_start_rtcp(strm);
 
 		if (pc->estabh)
 			pc->estabh(media, pc->arg);
@@ -397,7 +397,7 @@ int peerconnection_add_audio(struct peer_connection *pc,
 
 	err = audio_alloc(&media->u.au, &pc->streaml,
 			  &pc->stream_prm, cfg,
-			  NULL, pc->sdp, 0,
+			  NULL, pc->sdp,
 			  pc->mnat, pc->mnats,
 			  pc->menc, pc->mencs,
 			  AUDIO_PTIME, aucodecl, offerer,
@@ -441,7 +441,7 @@ int peerconnection_add_video(struct peer_connection *pc,
 	err = video_alloc(&media->u.vid, &pc->streaml,
 			  &pc->stream_prm,
 			  cfg,
-			  pc->sdp, 0,
+			  pc->sdp,
 			  pc->mnat, pc->mnats,
 			  pc->menc, pc->mencs,
 			  NULL, vidcodecl,
