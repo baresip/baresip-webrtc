@@ -420,7 +420,7 @@ static void http_req_handler(struct http_conn *conn,
 			goto out;
 		}
 
-		info(".... sdp: session-id '%r'\n", &hdr->val);
+		info("demo: sdp: session-id '%r'\n", &hdr->val);
 
 		sess = session_lookup(&hdr->val);
 		if (sess) {

@@ -24,13 +24,18 @@ static const char *modpath = "/usr/local/lib/baresip/modules";
 static const char *modv[] = {
 	"ice",
 	"dtls_srtp",
+
+	/* audio */
 	"opus",
 	"g722",
-	"aufile",
+	"g711",
+	"gst",
+
+	/* video */
 	"avcodec",
-	"fakevideo",
+	"vp8",
 	"avformat",
-	"ausine"
+	"fakevideo",
 };
 
 static const char *ice_server = "stun:stun.l.google.com:19302";
@@ -156,15 +161,18 @@ int main(int argc, char *argv[])
 
 	config = conf_config();
 
-	str_ncpy(config->audio.src_mod, "ausine",
+	str_ncpy(config->audio.src_mod, "gst",
 		 sizeof(config->audio.src_mod));
-	str_ncpy(config->audio.src_dev, "440",
+	str_ncpy(config->audio.src_dev,
+		 "http://stream.fr.morow.com:8080/morow_med.mp3",
 		 sizeof(config->audio.src_dev));
 
 	str_ncpy(config->video.src_mod, "avformat",
 		 sizeof(config->video.src_mod));
-	str_ncpy(config->video.src_dev, "lavfi,testsrc2",
+	str_ncpy(config->video.src_dev, "lavfi,mptestsrc",
 		 sizeof(config->video.src_dev));
+
+	config->audio.level = true;
 
 	config->video.bitrate = 2000000;
 	config->video.fps = 30.0;
