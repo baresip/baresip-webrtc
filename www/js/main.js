@@ -86,7 +86,7 @@ function connect_call()
 
 		const track = event.track;
 
-		console.log("got remote track: kind=%s", track.kind);
+		console.log("got remote track: kind='%s'", track.kind);
 
 		if (audio.srcObject !== event.streams[0]) {
 			audio.srcObject = event.streams[0];
