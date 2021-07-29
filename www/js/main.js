@@ -21,7 +21,7 @@ let localStream;  /* MediaStream */
 let session_id;   /* String */
 
 
-const configuration = {
+const pc_configuration = {
 	bundlePolicy: 'balanced',
 
 	/* certificates */
@@ -39,7 +39,7 @@ const configuration = {
 	/* peerIdentity */
 };
 
-const constraints = {
+const gum_constraints = {
 	audio: true,
 	video: { width:640, height:480, framerate:30 }
 };
@@ -59,7 +59,7 @@ function connect_call()
 
 	console.log("Connecting call");
 
-	pc = new RTCPeerConnection(configuration);
+	pc = new RTCPeerConnection(pc_configuration);
 
 	pc.onicecandidate = (event) => {
 
@@ -101,7 +101,7 @@ function connect_call()
 
 	console.log("Requesting local stream");
 
-	navigator.mediaDevices.getUserMedia(constraints)
+	navigator.mediaDevices.getUserMedia(gum_constraints)
 		.then(function(stream) {
 
 			disconnectButton.disabled = false;
