@@ -70,7 +70,7 @@ int mediatrack_start_audio(struct media_track *media,
 		err = audio_start_source(au, ausrcl, aufiltl);
 		if (err) {
 			warning("mediatrack: start:"
-				" audio_start error: %m\n", err);
+				" audio_start_source error: %m\n", err);
 			return err;
 		}
 	}
