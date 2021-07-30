@@ -50,6 +50,8 @@ static int session_new(struct session **sessp)
 	struct session *sess;
 
 	sess = mem_zalloc(sizeof(*sess), destructor);
+	if (!sess)
+		return ENOMEM;
 
 	/* generate a unique session id */
 
@@ -60,6 +62,19 @@ static int session_new(struct session **sessp)
 	*sessp = sess;
 
 	return 0;
+}
+
+
+static void session_close(struct session *sess, int err)
+{
+	info("demo: session '%s' closed (%m)\n", sess->id, err);
+
+	sess->pc = mem_deref(sess->pc);
+	mem_deref(sess);
+
+	if (err) {
+		http_ereply(conn_pending, 500, "Session closed");
+	}
 }
 
 
@@ -182,9 +197,8 @@ static void peerconnection_gather_handler(void *arg)
 
 static void peerconnection_estab_handler(struct media_track *media, void *arg)
 {
-	int err;
-
-	(void)arg;
+	struct session *sess = arg;
+	int err = 0;
 
 	info("demo: stream established: '%s'\n", media_kind_name(media->kind));
 
@@ -204,7 +218,13 @@ static void peerconnection_estab_handler(struct media_track *media, void *arg)
 			warning("demo: could not start video (%m)\n", err);
 		}
 		break;
+
+	default:
+		break;
 	}
+
+	if (err)
+		session_close(sess, err);
 }
 
 
@@ -214,8 +234,7 @@ static void peerconnection_close_handler(int err, void *arg)
 
 	warning("demo: session closed (%m)\n", err);
 
-	/* todo: notify client that session was closed */
-	sess->pc = mem_deref(sess->pc);
+	session_close(sess, err);
 }
 
 
@@ -235,7 +254,7 @@ static int create_pc(struct session *sess, enum sdp_type type)
 				 peerconnection_close_handler, sess);
 	if (err) {
 		warning("demo: session alloc failed (%m)\n", err);
-		goto out;
+		return err;
 	}
 
 	err = peerconnection_add_audio(sess->pc, config, baresip_aucodecl());
@@ -251,6 +270,9 @@ static int create_pc(struct session *sess, enum sdp_type type)
 	}
 
  out:
+	if (err)
+		sess->pc = mem_deref(sess->pc);
+
 	return err;
 }
 
