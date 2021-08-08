@@ -402,6 +402,7 @@ static void http_req_handler(struct http_conn *conn,
 			     const struct http_msg *msg, void *arg)
 {
 	struct pl path = PL("/index.html");
+	const struct http_hdr *hdr;
 	struct session *sess;
 	int err = 0;
 	(void)arg;
@@ -433,8 +434,6 @@ static void http_req_handler(struct http_conn *conn,
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
 
-		const struct http_hdr *hdr;
-
 		hdr = http_msg_xhdr(msg, "Session-ID");
 		if (!hdr) {
 			warning("demo: no Session-ID header\n");
@@ -463,8 +462,6 @@ static void http_req_handler(struct http_conn *conn,
 	}
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/disconnect")) {
-
-		const struct http_hdr *hdr;
 
 		info("demo: disconnect\n");
 
