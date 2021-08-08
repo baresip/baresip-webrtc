@@ -153,7 +153,7 @@ function send_post_connect()
 
 			const sessid = xhr.getResponseHeader("Session-ID");
 
-			console.log(".... session: %s", sessid);
+			console.log("connect: session: %s", sessid);
 
 			/* Save the session ID */
 			session_id = sessid;
