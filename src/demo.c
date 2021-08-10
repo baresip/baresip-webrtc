@@ -453,8 +453,6 @@ static void http_req_handler(struct http_conn *conn,
 			conn_pending = mem_ref(conn);
 		}
 		else {
-			warning("demo: sdp: session not found (%r)\n",
-				&hdr->val);
 			http_ereply(conn, 404, "Session Not Found");
 			return;
 		}
