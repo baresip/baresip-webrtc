@@ -78,17 +78,26 @@ static void session_close(struct session *sess, int err)
 }
 
 
-static struct session *session_lookup(const struct pl *sessid)
+static struct session *session_lookup(const struct http_msg *msg)
 {
+	const struct http_hdr *hdr;
 	struct le *le;
+
+	hdr = http_msg_xhdr(msg, "Session-ID");
+	if (!hdr) {
+		warning("demo: no Session-ID header\n");
+		return NULL;
+	}
 
 	for (le = sessl.head; le; le = le->next) {
 
 		struct session *sess = le->data;
 
-		if (0 == pl_strcasecmp(sessid, sess->id))
+		if (0 == pl_strcasecmp(&hdr->val, sess->id))
 			return sess;
 	}
+
+	warning("demo: session not found (%r)\n", &hdr->val);
 
 	return NULL;
 }
@@ -402,7 +411,6 @@ static void http_req_handler(struct http_conn *conn,
 			     const struct http_msg *msg, void *arg)
 {
 	struct pl path = PL("/index.html");
-	const struct http_hdr *hdr;
 	struct session *sess;
 	int err = 0;
 	(void)arg;
@@ -434,16 +442,7 @@ static void http_req_handler(struct http_conn *conn,
 	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
 		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
 
-		hdr = http_msg_xhdr(msg, "Session-ID");
-		if (!hdr) {
-			warning("demo: no Session-ID header\n");
-			err = EPROTO;
-			goto out;
-		}
-
-		info("demo: sdp: session-id '%r'\n", &hdr->val);
-
-		sess = session_lookup(&hdr->val);
+		sess = session_lookup(msg);
 		if (sess) {
 			err = handle_post_sdp(sess, msg);
 			if (err)
@@ -465,17 +464,10 @@ static void http_req_handler(struct http_conn *conn,
 
 		info("demo: disconnect\n");
 
-		hdr = http_msg_xhdr(msg, "Session-ID");
-		if (!hdr) {
-			warning("demo: no Session-ID header\n");
-			err = EPROTO;
-			goto out;
-		}
-
-		sess = session_lookup(&hdr->val);
+		sess = session_lookup(msg);
 		if (sess) {
 			info("demo: closing session %s\n", sess->id);
-			mem_deref(sess);
+			session_close(sess, 0);
 
 			http_reply(conn, 200, "OK",
 				   "Content-Length: 0\r\n"
@@ -483,7 +475,6 @@ static void http_req_handler(struct http_conn *conn,
 				   "\r\n");
 		}
 		else {
-			warning("demo: session not found (%r)\n", &hdr->val);
 			http_ereply(conn, 404, "Session Not Found");
 			return;
 		}
