@@ -364,6 +364,51 @@ out:
 }
 
 
+static int handle_post_candidate(struct session *sess,
+				 const struct http_msg *msg)
+{
+	const char *cand, *mid;
+	struct odict *od;
+	enum {MAX_DEPTH = 2};
+	struct pl pl_cand;
+	char *cand2 = NULL;
+	int err;
+
+	err = json_decode_odict(&od, 4, (char *)mbuf_buf(msg->mb),
+				mbuf_get_left(msg->mb), MAX_DEPTH);
+	if (err) {
+		warning("demo: candidate: could not decode json (%m)\n", err);
+		return err;
+	}
+
+#if 1
+	re_printf(".... od: %H\n", odict_debug, od);
+#endif
+
+	cand = odict_string(od, "candidate");
+	mid  = odict_string(od, "sdpMid");
+	if (!cand || !mid) {
+		warning("demo: candidate: missing 'candidate' or 'mid'\n");
+		err = EPROTO;
+		goto out;
+	}
+
+	err = re_regex(cand, str_len(cand), "candidate:[^]+", &pl_cand);
+	if (err)
+		goto out;
+
+	pl_strdup(&cand2, &pl_cand);
+
+	peerconnection_add_ice_candidate(sess->pc, cand2, mid);
+
+ out:
+	mem_deref(cand2);
+	mem_deref(od);
+
+	return err;
+}
+
+
 static void handle_get(struct http_conn *conn, const struct pl *path)
 {
 	const char *ext, *mime;
@@ -451,6 +496,24 @@ static void http_req_handler(struct http_conn *conn,
 			/* async reply */
 			mem_deref(conn_pending);
 			conn_pending = mem_ref(conn);
+		}
+		else {
+			http_ereply(conn, 404, "Session Not Found");
+			return;
+		}
+	}
+	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
+		 0 == pl_strcasecmp(&msg->path, "/candidate")) {
+
+		sess = session_lookup(msg);
+		if (sess) {
+			handle_post_candidate(sess, msg);
+
+			/* sync reply */
+			http_reply(conn, 200, "OK",
+				   "Content-Length: 0\r\n"
+				   "Access-Control-Allow-Origin: *\r\n"
+				   "\r\n");
 		}
 		else {
 			http_ereply(conn, 404, "Session Not Found");

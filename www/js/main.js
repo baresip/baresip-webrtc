@@ -53,6 +53,29 @@ const offerOptions = {
 };
 
 
+function send_candidate(json)
+{
+	var xhr = new XMLHttpRequest();
+	const loc = self.location;
+
+	console.log("send json: " + loc);
+
+	xhr.open("POST", '' + loc + 'candidate', true);
+	xhr.setRequestHeader("Content-Type", "application/json");
+	xhr.setRequestHeader("Session-ID", session_id);
+
+	xhr.onreadystatechange = function() {
+		if (this.readyState === XMLHttpRequest.DONE &&
+		    this.status === 200) {
+
+			console.log("send cand: 200 ok");
+		}
+	}
+
+	xhr.send(json);
+}
+
+
 function connect_call()
 {
 	connectButton.disabled = true;
@@ -63,14 +86,12 @@ function connect_call()
 
 	pc.onicecandidate = (event) => {
 
-		if (event.candidate === null) {
+		if (event.candidate) {
+			const cand_json = JSON.stringify(event.candidate);
 
-			// All ICE candidates have been sent
+			console.log(".... ice: %s", cand_json);
 
-			const sd = pc.localDescription;
-			const json = JSON.stringify(sd);
-
-			send_post_sdp(json);
+			send_candidate(cand_json);
 		}
 	};
 
@@ -163,6 +184,11 @@ function send_post_connect()
 				console.log("got local description: %s", desc.type);
 
 				pc.setLocalDescription(desc).then(() => {
+
+					const sd = pc.localDescription;
+					const json = JSON.stringify(sd);
+
+					send_post_sdp(json);
 				},
 				function (error) {
 					console.log("setLocalDescription: %s",

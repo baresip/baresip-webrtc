@@ -622,6 +622,24 @@ int peerconnection_create_answer(struct peer_connection *pc,
 }
 
 
+/*
+ * RTCPeerConnection.addIceCandidate()
+ */
+void peerconnection_add_ice_candidate(struct peer_connection *pc,
+				      const char *cand, const char *mid)
+{
+	struct stream *strm;
+
+	if (!pc)
+		return;
+
+	strm = stream_lookup_mid(&pc->streaml, mid, str_len(mid));
+	if (strm) {
+		stream_mnat_attr(strm, "candidate", cand);
+	}
+}
+
+
 int peerconnection_start_ice(struct peer_connection *pc)
 {
 	int err;

@@ -66,6 +66,8 @@ int peerconnection_create_answer(struct peer_connection *sess,
 int peerconnection_start_ice(struct peer_connection *pc);
 enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
 void peerconnection_close(struct peer_connection *pc);
+void peerconnection_add_ice_candidate(struct peer_connection *pc,
+				      const char *cand, const char *mid);
 
 
 /*
