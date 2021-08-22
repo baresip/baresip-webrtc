@@ -89,7 +89,7 @@ function connect_call()
 		if (event.candidate) {
 			const cand_json = JSON.stringify(event.candidate);
 
-			console.log(".... ice: %s", cand_json);
+			console.log("ice: %s", cand_json);
 
 			send_candidate(cand_json);
 		}
@@ -225,13 +225,14 @@ function send_post_sdp(descr)
 
 			const descr = JSON.parse(xhr.response);
 
-			console.log("remote description: type=%s", descr.type);
+			console.log("remote description: type='%s'", descr.type);
 
 			pc.setRemoteDescription(descr).then(() => {
 				console.log('set remote description -- success');
 			}, function (error) {
 				console.log("setRemoteDescription: %s",
 					    error.toString());
+				disconnect_call();
 			});
 		}
 	}
