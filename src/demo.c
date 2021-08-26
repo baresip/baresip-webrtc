@@ -597,8 +597,10 @@ int demo_init(const char *ice_server,
 		return err;
 
 	info("demo: listening on:\n");
-	info("    http://localhost:%u/\n", sa_port(&laddr));
-	info("    https://localhost:%u/\n", sa_port(&laddrs));
+	info("    http://%j:%u/\n",
+			net_laddr_af(baresip_network(), AF_INET), sa_port(&laddr));
+	info("    https://%j:%u/\n",
+			net_laddr_af(baresip_network(), AF_INET), sa_port(&laddrs));
 
 	return 0;
 }
