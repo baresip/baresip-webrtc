@@ -58,17 +58,15 @@ function send_candidate(json)
 	var xhr = new XMLHttpRequest();
 	const loc = self.location;
 
-	console.log("send json: " + loc);
-
 	xhr.open("POST", '' + loc + 'candidate', true);
 	xhr.setRequestHeader("Content-Type", "application/json");
 	xhr.setRequestHeader("Session-ID", session_id);
 
 	xhr.onreadystatechange = function() {
 		if (this.readyState === XMLHttpRequest.DONE &&
-		    this.status === 200) {
+		    this.status !== 200) {
 
-			console.log("send cand: 200 ok");
+			/* todo: print warning and close call */
 		}
 	}
 
@@ -88,8 +86,6 @@ function connect_call()
 
 		if (event.candidate) {
 			const cand_json = JSON.stringify(event.candidate);
-
-			console.log("ice: %s", cand_json);
 
 			send_candidate(cand_json);
 		}
