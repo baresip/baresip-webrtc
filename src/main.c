@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
 
 	/* override default config */
 	config->avt.rtcp_mux = true;
+	config->avt.rtp_stats = true;
 
 	err = demo_init(ice_server, stun_user, stun_pass);
 	if (err) {
