@@ -381,7 +381,7 @@ static int handle_post_candidate(struct session *sess,
 		return err;
 	}
 
-#if 1
+#if 0
 	re_printf(".... od: %H\n", odict_debug, od);
 #endif
 
