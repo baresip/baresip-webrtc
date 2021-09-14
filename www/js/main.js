@@ -93,6 +93,8 @@ function connect_call()
 
 	pc.onicecandidateerror = function(event) {
 
+		console.log("ICE Candidate Error: %s %s", event.errorCode, event.errorText);
+
 		disconnect_call();
 
 		alert("ICE Candidate Error: " +
