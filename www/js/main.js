@@ -93,12 +93,14 @@ function connect_call()
 
 	pc.onicecandidateerror = function(event) {
 
-		console.log("ICE Candidate Error: %s %s", event.errorCode, event.errorText);
+		console.log("ICE Candidate Error: local-address=%s --> url=%s (%s %s)",
+			    event.address, event.url,
+			    event.errorCode, event.errorText);
 
-		disconnect_call();
-
-		alert("ICE Candidate Error: " +
-		      event.errorCode + " " + event.errorText);
+		/*
+		  alert("ICE Candidate Error: " +
+		  event.errorCode + " " + event.errorText);
+		*/
 	}
 
 	pc.ontrack = function(event) {
