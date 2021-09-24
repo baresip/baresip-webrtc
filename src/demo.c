@@ -181,7 +181,7 @@ static void peerconnection_gather_handler(void *arg)
 	ss = peerconnection_signaling(sess->pc);
 	type = (ss != SS_HAVE_REMOTE_OFFER) ? SDP_OFFER : SDP_ANSWER;
 
-	info("demo: session gathered -- send %s\n", sdptype_name(type));
+	info("demo: session gathered -- send '%s'\n", sdptype_name(type));
 
 	if (type == SDP_OFFER)
 		err = peerconnection_create_offer(sess->pc, &mb_sdp);
