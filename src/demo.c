@@ -19,13 +19,13 @@ enum {
 struct session {
 	struct le le;
 	struct peer_connection *pc;
+	struct http_conn *conn_pending;
 	char *id;
 };
 
 
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
-static struct http_conn *conn_pending;
 static const struct mnat *mnat;
 static const struct menc *menc;
 static uint32_t session_counter;
@@ -40,6 +40,7 @@ static void destructor(void *data)
 	struct session *sess = data;
 
 	list_unlink(&sess->le);
+	mem_deref(sess->conn_pending);
 	mem_deref(sess->pc);
 	mem_deref(sess->id);
 }
@@ -70,11 +71,12 @@ static void session_close(struct session *sess, int err)
 	info("demo: session '%s' closed (%m)\n", sess->id, err);
 
 	sess->pc = mem_deref(sess->pc);
-	mem_deref(sess);
 
 	if (err) {
-		http_ereply(conn_pending, 500, "Session closed");
+		http_ereply(sess->conn_pending, 500, "Session closed");
 	}
+
+	mem_deref(sess);
 }
 
 
@@ -145,7 +147,8 @@ static void reply_fmt(struct http_conn *conn, const char *ctype,
  *
  * NOTE: currentLocalDescription
  */
-static int reply_descr(enum sdp_type type, struct mbuf *mb_sdp)
+static int reply_descr(struct session *sess, enum sdp_type type,
+		       struct mbuf *mb_sdp)
 {
 	struct odict *od = NULL;
 	int err;
@@ -154,7 +157,7 @@ static int reply_descr(enum sdp_type type, struct mbuf *mb_sdp)
 	if (err)
 		goto out;
 
-	reply_fmt(conn_pending, "application/json",
+	reply_fmt(sess->conn_pending, "application/json",
 		  "%H", json_encode_odict, od);
 
  out:
@@ -184,7 +187,7 @@ static void peerconnection_gather_handler(void *arg)
 	if (err)
 		return;
 
-	err = reply_descr(type, mb_sdp);
+	err = reply_descr(sess, type, mb_sdp);
 	if (err) {
 		warning("demo: reply error: %m\n", err);
 		goto out;
@@ -492,8 +495,8 @@ static void http_req_handler(struct http_conn *conn,
 				goto out;
 
 			/* async reply */
-			mem_deref(conn_pending);
-			conn_pending = mem_ref(conn);
+			mem_deref(sess->conn_pending);
+			sess->conn_pending = mem_ref(conn);
 		}
 		else {
 			http_ereply(conn, 404, "Session Not Found");
@@ -608,7 +611,6 @@ void demo_close(void)
 {
 	list_flush(&sessl);
 
-	conn_pending = mem_deref(conn_pending);
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
 	pc_config.ice_server = mem_deref(pc_config.ice_server);
