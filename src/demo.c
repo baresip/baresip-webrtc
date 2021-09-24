@@ -68,7 +68,10 @@ static int session_new(struct session **sessp)
 
 static void session_close(struct session *sess, int err)
 {
-	info("demo: session '%s' closed (%m)\n", sess->id, err);
+	if (err)
+		warning("demo: session '%s' closed (%m)\n", sess->id, err);
+	else
+		info("demo: session '%s' closed\n", sess->id);
 
 	sess->pc = mem_deref(sess->pc);
 
