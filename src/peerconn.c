@@ -32,8 +32,8 @@ struct peer_connection {
 
 	/* steps: */
 	bool gather_ok;
-	bool sdp_enc_ok;
-	bool sdp_dec_ok;
+	unsigned sdp_enc_ok;
+	unsigned sdp_dec_ok;
 };
 
 
@@ -61,8 +61,8 @@ static void pc_summary(const struct peer_connection *pc)
 
 	info("steps:\n");
 	info(".. gather:   %d\n", pc->gather_ok);
-	info(".. sdp_enc:  %d\n", pc->sdp_enc_ok);
-	info(".. sdp_dec:  %d\n", pc->sdp_dec_ok);
+	info(".. sdp_enc:  %u\n", pc->sdp_enc_ok);
+	info(".. sdp_dec:  %u\n", pc->sdp_dec_ok);
 	info("\n");
 
 	for (le = pc->medial.head; le; le = le->next, ++i) {
@@ -531,7 +531,7 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 		stream_update(strm);
 	}
 
-	pc->sdp_dec_ok = true;
+	++pc->sdp_dec_ok;
 
 	return 0;
 }
@@ -573,7 +573,7 @@ int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 
 	pc->signaling_state = SS_HAVE_LOCAL_OFFER;
 
-	pc->sdp_enc_ok = true;
+	++pc->sdp_enc_ok;
 
 	return 0;
 }
@@ -616,7 +616,7 @@ int peerconnection_create_answer(struct peer_connection *pc,
 		info("- - - - - - -\n");
 	}
 
-	pc->sdp_enc_ok = true;
+	++pc->sdp_enc_ok;
 
 	return 0;
 }
