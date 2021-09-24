@@ -247,17 +247,15 @@ static void peerconnection_close_handler(int err, void *arg)
 }
 
 
-/* RemoteDescription */
-static int create_pc(struct session *sess, enum sdp_type type)
+static int create_pc(struct session *sess)
 {
 	const struct config *config = conf_config();
-	bool got_offer = (type == SDP_OFFER);
 	int err;
 
-	info("demo: create session (type=%s)\n", sdptype_name(type));
+	info("demo: create session\n");
 
 	/* create a new session object, send SDP to it */
-	err = peerconnection_new(&sess->pc, &pc_config, got_offer, mnat, menc,
+	err = peerconnection_new(&sess->pc, &pc_config, mnat, menc,
 				 peerconnection_gather_handler,
 				 peerconnection_estab_handler,
 				 peerconnection_close_handler, sess);
@@ -341,7 +339,7 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 		}
 
 		if (!sess->pc) {
-			err = create_pc(sess, sd.type);
+			err = create_pc(sess);
 			if (err)
 				goto out;
 		}
@@ -598,9 +596,9 @@ int demo_init(const char *ice_server,
 
 	info("demo: listening on:\n");
 	info("    http://%j:%u/\n",
-			net_laddr_af(baresip_network(), AF_INET), sa_port(&laddr));
+		net_laddr_af(baresip_network(), AF_INET), sa_port(&laddr));
 	info("    https://%j:%u/\n",
-			net_laddr_af(baresip_network(), AF_INET), sa_port(&laddrs));
+		net_laddr_af(baresip_network(), AF_INET), sa_port(&laddrs));
 
 	return 0;
 }

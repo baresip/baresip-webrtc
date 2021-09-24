@@ -291,7 +291,6 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 
 int peerconnection_new(struct peer_connection **pcp,
 		       const struct configuration *config,
-		       bool got_offer,
 		       const struct mnat *mnat, const struct menc *menc,
 		       peerconnection_gather_h *gatherh,
 		       peerconnection_estab_h *estabh,
@@ -299,6 +298,7 @@ int peerconnection_new(struct peer_connection **pcp,
 {
 	struct peer_connection *pc;
 	struct sa laddr;
+	bool got_offer = true;
 	int err;
 
 	if (!pcp)

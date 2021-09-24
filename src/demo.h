@@ -45,12 +45,11 @@ typedef void (peerconnection_estab_h)(struct media_track *media,
 typedef void (peerconnection_close_h)(int err, void *arg);
 
 int peerconnection_new(struct peer_connection **pcp,
-		          const struct configuration *config,
-			  bool got_offer,
-			  const struct mnat *mnat, const struct menc *menc,
-			  peerconnection_gather_h *gatherh,
-			  peerconnection_estab_h,
-			  peerconnection_close_h *closeh, void *arg);
+		       const struct configuration *config,
+		       const struct mnat *mnat, const struct menc *menc,
+		       peerconnection_gather_h *gatherh,
+		       peerconnection_estab_h,
+		       peerconnection_close_h *closeh, void *arg);
 int peerconnection_add_audio(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *aucodecl);
