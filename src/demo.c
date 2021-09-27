@@ -35,6 +35,9 @@ static struct configuration pc_config;
 static struct list sessl;
 
 
+static int create_pc(struct session *sess);
+
+
 static void destructor(void *data)
 {
 	struct session *sess = data;
@@ -49,6 +52,7 @@ static void destructor(void *data)
 static int session_new(struct session **sessp)
 {
 	struct session *sess;
+	int err;
 
 	sess = mem_zalloc(sizeof(*sess), destructor);
 	if (!sess)
@@ -58,9 +62,17 @@ static int session_new(struct session **sessp)
 
 	re_sdprintf(&sess->id, "%u", ++session_counter);
 
+	err = create_pc(sess);
+	if (err)
+		goto out;
+
 	list_append(&sessl, &sess->le, sess);
 
-	*sessp = sess;
+ out:
+	if (err)
+		mem_deref(sess);
+	else if (sessp)
+		*sessp = sess;
 
 	return 0;
 }
@@ -342,12 +354,6 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 				&msg->ctyp.type, &msg->ctyp.subtype);
 			err = EPROTO;
 			goto out;
-		}
-
-		if (!sess->pc) {
-			err = create_pc(sess);
-			if (err)
-				goto out;
 		}
 
 		if (got_offer) {
