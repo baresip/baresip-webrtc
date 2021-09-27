@@ -253,11 +253,13 @@ function disconnect_call()
 	disconnectButton.disabled = true;
 	connectButton.disabled = false;
 
-	// send a message to the server
-	var xhr = new XMLHttpRequest();
-	xhr.open("POST", '' + self.location + 'disconnect', true);
-	xhr.setRequestHeader("Session-ID", session_id);
-	xhr.send();
+	if (session_id) {
+		// send a message to the server
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", '' + self.location + 'disconnect', true);
+		xhr.setRequestHeader("Session-ID", session_id);
+		xhr.send();
+	}
 
 	session_id = null;
 }
