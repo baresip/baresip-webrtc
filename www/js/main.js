@@ -93,7 +93,7 @@ function connect_call()
 
 	pc.onicecandidateerror = function(event) {
 
-		console.log("ICE Candidate Error: local-address=%s --> url=%s (%s %s)",
+		console.error("ICE Candidate Error: local-address=%s --> url=%s (%s %s)",
 			    event.address, event.url,
 			    event.errorCode, event.errorText);
 
@@ -196,7 +196,7 @@ function send_post_connect()
 				});
 			})
 			.catch(function(error) {
-			       console.log("Failed to create session description: %s",
+			       console.error("Failed to create session description: %s",
 					   error.toString());
 			});
 		}
