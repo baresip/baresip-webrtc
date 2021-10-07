@@ -93,7 +93,7 @@ function connect_call()
 
 	pc.onicecandidateerror = function(event) {
 
-		console.error("ICE Candidate Error: local-address=%s --> url=%s (%s %s)",
+		console.warn("ICE Candidate Error: local-address=%s --> url=%s (%s %s)",
 			    event.address, event.url,
 			    event.errorCode, event.errorText);
 
@@ -196,7 +196,7 @@ function send_post_connect()
 				});
 			})
 			.catch(function(error) {
-			       console.error("Failed to create session description: %s",
+			       console.warn("Failed to create session description: %s",
 					   error.toString());
 			});
 		}
@@ -230,7 +230,7 @@ function send_post_sdp(descr)
 			pc.setRemoteDescription(descr).then(() => {
 				console.log('set remote description -- success');
 			}, function (error) {
-				console.log("setRemoteDescription: %s",
+				console.warn("setRemoteDescription: %s",
 					    error.toString());
 				disconnect_call();
 			});
