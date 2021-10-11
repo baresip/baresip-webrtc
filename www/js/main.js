@@ -247,8 +247,10 @@ function disconnect_call()
 
 	localStream.getTracks().forEach(track => track.stop());
 
-	pc.close();
-	pc = null;
+	if (pc) {
+		pc.close();
+		pc = null;
+	}
 
 	disconnectButton.disabled = true;
 	connectButton.disabled = false;
