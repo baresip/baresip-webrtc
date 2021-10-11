@@ -199,8 +199,10 @@ static void peerconnection_gather_handler(void *arg)
 		err = peerconnection_create_offer(sess->pc, &mb_sdp);
 	else
 		err = peerconnection_create_answer(sess->pc, &mb_sdp);
-	if (err)
+	if (err) {
+		session_close(sess, err);
 		return;
+	}
 
 	err = reply_descr(sess, type, mb_sdp);
 	if (err) {
