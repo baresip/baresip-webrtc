@@ -91,9 +91,11 @@ void demo_close(void);
  * Session Description
  */
 
+/* RTCSdpType */
 enum sdp_type {
 	SDP_OFFER,
-	SDP_ANSWER
+	SDP_ANSWER,
+	SDP_ROLLBACK  /* special type */
 };
 
 /*

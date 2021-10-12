@@ -81,6 +81,8 @@ int session_description_decode(struct session_description *sd,
 		sd->type = SDP_OFFER;
 	else if (0 == str_casecmp(type, "answer"))
 		sd->type = SDP_ANSWER;
+	else if (0 == str_casecmp(type, "rollback"))
+		sd->type = SDP_ROLLBACK;
 	else {
 		warning("descr: invalid type %s\n", type);
 		err = EPROTO;
@@ -121,6 +123,7 @@ const char *sdptype_name(enum sdp_type type)
 
 	case SDP_OFFER:    return "offer";
 	case SDP_ANSWER:   return "answer";
+	case SDP_ROLLBACK: return "rollback";
 	default: return "?";
 	}
 }

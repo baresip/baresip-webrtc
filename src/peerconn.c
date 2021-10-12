@@ -480,6 +480,11 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 	info("peerconnection: set remote description. type=%s\n",
 	     sdptype_name(sd->type));
 
+	if (sd->type == SDP_ROLLBACK) {
+		pc->signaling_state = SS_STABLE;
+		return 0;
+	}
+
 	if (pc->signaling_state == SS_HAVE_REMOTE_OFFER) {
 		warning("peerconnection: set remote descr:"
 			" invalid signaling state (%s)\n",
