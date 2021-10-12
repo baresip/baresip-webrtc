@@ -119,8 +119,8 @@ const char *sdptype_name(enum sdp_type type)
 {
 	switch (type) {
 
-	case SDP_OFFER:  return "offer";
-	case SDP_ANSWER: return "answer";
+	case SDP_OFFER:    return "offer";
+	case SDP_ANSWER:   return "answer";
 	default: return "?";
 	}
 }
