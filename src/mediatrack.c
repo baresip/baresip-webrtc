@@ -111,7 +111,7 @@ int mediatrack_start_video(struct media_track *media)
 			return err;
 		}
 
-		err = video_start_source(vid, NULL);
+		err = video_start_source(vid);
 		if (err) {
 			warning("mediatrack: start:"
 				" video_start error: %m\n", err);
@@ -138,7 +138,7 @@ void mediatrack_stop(struct media_track *media)
 		break;
 
 	case MEDIA_KIND_VIDEO:
-		video_stop(media->u.vid, NULL);
+		video_stop(media->u.vid);
 		break;
 	}
 }

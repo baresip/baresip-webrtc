@@ -22,7 +22,6 @@ struct peer_connection {
 	struct mnat_sess *mnats;
 	const struct menc *menc;
 	struct menc_sess *mencs;
-	struct media_ctx *ctx;    /* XXX: remove */
 	char cname[16];
 	enum signaling_st signaling_state;
 	peerconnection_gather_h *gatherh;
@@ -407,8 +406,6 @@ int peerconnection_add_audio(struct peer_connection *pc,
 		warning("peerconnection: audio alloc failed (%m)\n", err);
 		return err;
 	}
-
-	audio_set_media_context(media->u.au, &pc->ctx);
 
 	strm = audio_strm(media->u.au);
 
