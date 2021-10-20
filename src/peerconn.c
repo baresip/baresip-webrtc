@@ -154,22 +154,21 @@ static void pc_close(struct peer_connection *pc, int err)
 
 static void audio_error_handler(int err, const char *str, void *arg)
 {
-	struct peer_connection *pc = arg;
-	/* todo: map to media-track instead */
+	struct media_track *media = arg;
 
 	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
-	pc_close(pc, err);
+	pc_close(media->pc, err);
 }
 
 
 static void video_error_handler(int err, const char *str, void *arg)
 {
-	struct peer_connection *pc = arg;
+	struct media_track *media = arg;
 
 	warning("peerconnection: video error: %m (%s)\n", err, str);
 
-	pc_close(pc, err);
+	pc_close(media->pc, err);
 }
 
 
@@ -401,7 +400,7 @@ int peerconnection_add_audio(struct peer_connection *pc,
 			  pc->menc, pc->mencs,
 			  AUDIO_PTIME, aucodecl, offerer,
 			  NULL, NULL,
-			  audio_error_handler, pc);
+			  audio_error_handler, media);
 	if (err) {
 		warning("peerconnection: audio alloc failed (%m)\n", err);
 		return err;
@@ -444,7 +443,7 @@ int peerconnection_add_video(struct peer_connection *pc,
 			  NULL, vidcodecl,
 			  NULL,
 			  offerer,
-			  video_error_handler, pc);
+			  video_error_handler, media);
 	if (err) {
 		warning("peerconnection: video alloc failed (%m)\n", err);
 		return err;
