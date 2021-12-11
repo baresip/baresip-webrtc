@@ -36,7 +36,8 @@ static const char *modv[] = {
 	"vp8",
 	"vp9",
 	"avformat",
-	"fakevideo",
+	"sdl",
+	"fakevideo"
 };
 
 static const char *ice_server = "stun:stun.l.google.com:19302";
@@ -177,6 +178,7 @@ int main(int argc, char *argv[])
 
 	config->video.bitrate = 2000000;
 	config->video.fps = 30.0;
+	config->video.fullscreen = false;
 
 	/* override default config */
 	config->avt.rtcp_mux = true;
