@@ -29,7 +29,7 @@ static const char *modv[] = {
 	"opus",
 	"g722",
 	"g711",
-	"gst",
+	"ausine",
 
 	/* video */
 	"avcodec",
@@ -163,10 +163,10 @@ int main(int argc, char *argv[])
 
 	config = conf_config();
 
-	str_ncpy(config->audio.src_mod, "gst",
+	str_ncpy(config->audio.src_mod, "ausine",
 		 sizeof(config->audio.src_mod));
 	str_ncpy(config->audio.src_dev,
-		 "http://stream.fr.morow.com:8080/morow_med.mp3",
+		 "440",
 		 sizeof(config->audio.src_dev));
 
 	str_ncpy(config->video.src_mod, "avformat",
