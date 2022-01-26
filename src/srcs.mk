@@ -5,7 +5,6 @@
 #
 
 SRCS	+= demo.c
-SRCS	+= descr.c
 SRCS	+= main.c
 SRCS	+= mediatrack.c
 SRCS	+= peerconn.c
