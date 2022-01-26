@@ -87,8 +87,6 @@ int  demo_init(const char *ice_server,
 void demo_close(void);
 
 
-
-
 /*
  * Media Track
  */

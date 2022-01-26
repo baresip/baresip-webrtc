@@ -393,14 +393,10 @@ int peerconnection_add_audio(struct peer_connection *pc,
 
 	media = media_track_add(&pc->medial, pc, MEDIA_KIND_AUDIO);
 
-	err = audio_alloc(&media->u.au, &pc->streaml,
-			  &pc->stream_prm, cfg,
-			  NULL, pc->sdp,
-			  pc->mnat, pc->mnats,
-			  pc->menc, pc->mencs,
-			  AUDIO_PTIME, aucodecl, offerer,
-			  NULL, NULL,
-			  audio_error_handler, media);
+	err = audio_alloc(&media->u.au, &pc->streaml, &pc->stream_prm, cfg,
+			  NULL, pc->sdp, pc->mnat, pc->mnats,
+			  pc->menc, pc->mencs, AUDIO_PTIME, aucodecl, offerer,
+			  NULL, NULL, audio_error_handler, media);
 	if (err) {
 		warning("peerconnection: audio alloc failed (%m)\n", err);
 		return err;
@@ -434,15 +430,9 @@ int peerconnection_add_video(struct peer_connection *pc,
 
 	media = media_track_add(&pc->medial, pc, MEDIA_KIND_VIDEO);
 
-	err = video_alloc(&media->u.vid, &pc->streaml,
-			  &pc->stream_prm,
-			  cfg,
-			  pc->sdp,
-			  pc->mnat, pc->mnats,
-			  pc->menc, pc->mencs,
-			  NULL, vidcodecl,
-			  NULL,
-			  offerer,
+	err = video_alloc(&media->u.vid, &pc->streaml, &pc->stream_prm, cfg,
+			  pc->sdp, pc->mnat, pc->mnats, pc->menc, pc->mencs,
+			  NULL, vidcodecl, NULL, offerer,
 			  video_error_handler, media);
 	if (err) {
 		warning("peerconnection: video alloc failed (%m)\n", err);
