@@ -174,3 +174,19 @@ const char *media_kind_name(enum media_kind kind)
 	default: return "???";
 	}
 }
+
+
+int mediatrack_debug(struct re_printf *pf, const struct media_track *media)
+{
+	if (!media)
+		return 0;
+
+	switch (media->kind) {
+
+	case MEDIA_KIND_AUDIO:
+		return audio_debug(pf, media->u.au);
+
+	case MEDIA_KIND_VIDEO:
+		return video_debug(pf, media->u.vid);
+	}
+}

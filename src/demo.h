@@ -130,3 +130,4 @@ int  mediatrack_start_video(struct media_track *media);
 void mediatrack_stop(struct media_track *media);
 struct stream *media_get_stream(const struct media_track *media);
 const char *media_kind_name(enum media_kind kind);
+int mediatrack_debug(struct re_printf *pf, const struct media_track *media);

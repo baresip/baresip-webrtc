@@ -92,19 +92,7 @@ static void destructor(void *data)
 	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
 
-		if (!media->u.p)
-			continue;
-
-		switch (media->kind) {
-
-		case MEDIA_KIND_AUDIO:
-			debug("%H\n", audio_debug, media->u.au);
-			break;
-
-		case MEDIA_KIND_VIDEO:
-			debug("%H\n", video_debug, media->u.vid);
-			break;
-		}
+		debug("%H\n", mediatrack_debug, media);
 	}
 
 	le = pc->medial.head;
