@@ -141,7 +141,7 @@ static void audio_error_handler(int err, const char *str, void *arg)
 
 	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
-	pc_close(media->pc, err);
+	media->closeh(err, media->arg);
 }
 
 
@@ -151,7 +151,7 @@ static void video_error_handler(int err, const char *str, void *arg)
 
 	warning("peerconnection: video error: %m (%s)\n", err, str);
 
-	pc_close(media->pc, err);
+	media->closeh(err, media->arg);
 }
 
 
@@ -333,7 +333,7 @@ int peerconnection_add_audio(struct peer_connection *pc,
 
 	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
-	media = media_track_add(&pc->medial, pc, MEDIA_KIND_AUDIO,
+	media = media_track_add(&pc->medial, MEDIA_KIND_AUDIO,
 				mediatrack_close_handler, pc);
 
 	err = audio_alloc(&media->u.au, &pc->streaml, &pc->stream_prm, cfg,
@@ -366,7 +366,7 @@ int peerconnection_add_video(struct peer_connection *pc,
 
 	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
-	media = media_track_add(&pc->medial, pc, MEDIA_KIND_VIDEO,
+	media = media_track_add(&pc->medial, MEDIA_KIND_VIDEO,
 				mediatrack_close_handler, pc);
 
 	err = video_alloc(&media->u.vid, &pc->streaml, &pc->stream_prm, cfg,

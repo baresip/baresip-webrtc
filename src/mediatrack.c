@@ -19,7 +19,6 @@ static void destructor(void *data)
 
 
 struct media_track *media_track_add(struct list *lst,
-				    struct peer_connection *pc,
 				    enum media_kind kind,
 				    mediatrack_close_h *closeh, void *arg)
 {
@@ -30,7 +29,6 @@ struct media_track *media_track_add(struct list *lst,
 		return NULL;
 
 	media->kind = kind;
-	media->pc = pc;
 	media->closeh = closeh;
 	media->arg = arg;
 

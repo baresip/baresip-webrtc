@@ -116,7 +116,6 @@ struct media_track {
 		void *p;
 	} u;
 
-	struct peer_connection *pc;  /* pointer to parent */
 	mediatrack_close_h *closeh;
 	void *arg;
 	bool ice_conn;
@@ -127,7 +126,6 @@ struct media_track {
 
 
 struct media_track *media_track_add(struct list *lst,
-				    struct peer_connection *pc,
 				    enum media_kind kind,
 				    mediatrack_close_h *closeh, void *arg);
 int  mediatrack_start_audio(struct media_track *media,
