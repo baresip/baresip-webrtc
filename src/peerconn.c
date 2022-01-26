@@ -67,15 +67,10 @@ static void pc_summary(const struct peer_connection *pc)
 	for (le = pc->medial.head; le; le = le->next, ++i) {
 		struct media_track *media = le->data;
 
-		if (!media->u.p)
-			continue;
+		info(".. #%zu '%s'\n", i,
+		     media_kind_name(mediatrack_kind(media)));
 
-		info(".. #%zu '%s'\n", i, media_kind_name(media->kind));
-		info(".. ice_conn: %d\n", media->ice_conn);
-		info(".. dtls:     %d\n", media->dtls_ok);
-		info(".. rtp:      %d\n", media->rtp);
-		info(".. rtcp:     %d\n", media->rtcp);
-		info("\n");
+		mediatrack_summary(media);
 	}
 
 	info("\n");

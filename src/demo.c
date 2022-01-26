@@ -229,9 +229,10 @@ static void peerconnection_estab_handler(struct media_track *media, void *arg)
 	struct session *sess = arg;
 	int err = 0;
 
-	info("demo: stream established: '%s'\n", media_kind_name(media->kind));
+	info("demo: stream established: '%s'\n",
+	     media_kind_name(mediatrack_kind(media)));
 
-	switch (media->kind) {
+	switch (mediatrack_kind(media)) {
 
 	case MEDIA_KIND_AUDIO:
 		err = mediatrack_start_audio(media, baresip_ausrcl(),

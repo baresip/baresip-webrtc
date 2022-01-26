@@ -190,3 +190,22 @@ int mediatrack_debug(struct re_printf *pf, const struct media_track *media)
 		return video_debug(pf, media->u.vid);
 	}
 }
+
+
+enum media_kind mediatrack_kind(const struct media_track *media)
+{
+	return media ? media->kind : -1;
+}
+
+
+void mediatrack_summary(const struct media_track *media)
+{
+	if (!media || !media->u.p)
+		return;
+
+	info(".. ice_conn: %d\n", media->ice_conn);
+	info(".. dtls:     %d\n", media->dtls_ok);
+	info(".. rtp:      %d\n", media->rtp);
+	info(".. rtcp:     %d\n", media->rtcp);
+	info("\n");
+}
