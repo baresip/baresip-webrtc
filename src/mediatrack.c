@@ -20,7 +20,8 @@ static void destructor(void *data)
 
 struct media_track *media_track_add(struct list *lst,
 				    struct peer_connection *pc,
-				    enum media_kind kind)
+				    enum media_kind kind,
+				    mediatrack_close_h *closeh, void *arg)
 {
 	struct media_track *media;
 
@@ -30,6 +31,8 @@ struct media_track *media_track_add(struct list *lst,
 
 	media->kind = kind;
 	media->pc = pc;
+	media->closeh = closeh;
+	media->arg = arg;
 
 	list_append(lst, &media->le, media);
 
@@ -208,4 +211,61 @@ void mediatrack_summary(const struct media_track *media)
 	info(".. rtp:      %d\n", media->rtp);
 	info(".. rtcp:     %d\n", media->rtcp);
 	info("\n");
+}
+
+
+static void mnatconn_handler(struct stream *strm, void *arg)
+{
+	struct media_track *media = arg;
+	int err;
+
+	info("peerconnection: ice connected (%s)\n", stream_name(strm));
+
+	media->ice_conn = true;
+
+	err = stream_start_mediaenc(strm);
+	if (err) {
+		media->closeh(err, media->arg);
+	}
+}
+
+
+static void rtpestab_handler(struct stream *strm, void *arg)
+{
+	struct media_track *media = arg;
+
+	info("peerconnection: rtp established (%s)\n", stream_name(strm));
+
+	media->rtp = true;
+}
+
+
+static void rtcp_handler(struct stream *strm,
+			 struct rtcp_msg *msg, void *arg)
+{
+	struct media_track *media = arg;
+	(void)strm;
+	(void)msg;
+
+	media->rtcp = true;
+}
+
+
+static void stream_error_handler(struct stream *strm, int err, void *arg)
+{
+	struct media_track *media = arg;
+
+	warning("peerconnection: '%s' stream error (%m)\n",
+		stream_name(strm), err);
+
+	media->closeh(err, media->arg);
+}
+
+
+void mediatrack_set_handlers(struct media_track *media)
+{
+	struct stream *strm = media_get_stream(media);
+
+	stream_set_session_handlers(strm, mnatconn_handler, rtpestab_handler,
+				    rtcp_handler, stream_error_handler, media);
 }

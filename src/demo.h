@@ -96,6 +96,8 @@ enum media_kind {
 	MEDIA_KIND_VIDEO,
 };
 
+typedef void (mediatrack_close_h)(int err, void *arg);
+
 /*
  * https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack
  *
@@ -115,15 +117,19 @@ struct media_track {
 	} u;
 
 	struct peer_connection *pc;  /* pointer to parent */
+	mediatrack_close_h *closeh;
+	void *arg;
 	bool ice_conn;
 	bool dtls_ok;
 	bool rtp;
 	bool rtcp;
 };
 
+
 struct media_track *media_track_add(struct list *lst,
 				    struct peer_connection *pc,
-				    enum media_kind kind);
+				    enum media_kind kind,
+				    mediatrack_close_h *closeh, void *arg);
 int  mediatrack_start_audio(struct media_track *media,
 			    struct list *ausrcl, struct list *aufiltl);
 int  mediatrack_start_video(struct media_track *media);
@@ -133,3 +139,4 @@ const char *media_kind_name(enum media_kind kind);
 enum media_kind mediatrack_kind(const struct media_track *media);
 void mediatrack_summary(const struct media_track *media);
 int mediatrack_debug(struct re_printf *pf, const struct media_track *media);
+void mediatrack_set_handlers(struct media_track *media);

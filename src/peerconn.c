@@ -222,54 +222,6 @@ static void menc_error_handler(int err, void *arg)
 }
 
 
-static void mnatconn_handler(struct stream *strm, void *arg)
-{
-	struct media_track *media = arg;
-	int err;
-
-	info("peerconnection: ice connected (%s)\n", stream_name(strm));
-
-	media->ice_conn = true;
-
-	err = stream_start_mediaenc(strm);
-	if (err) {
-		pc_close(media->pc, err);
-	}
-}
-
-
-static void rtpestab_handler(struct stream *strm, void *arg)
-{
-	struct media_track *media = arg;
-
-	info("peerconnection: rtp established (%s)\n", stream_name(strm));
-
-	media->rtp = true;
-}
-
-
-static void rtcp_handler(struct stream *strm,
-			 struct rtcp_msg *msg, void *arg)
-{
-	struct media_track *media = arg;
-	(void)strm;
-	(void)msg;
-
-	media->rtcp = true;
-}
-
-
-static void stream_error_handler(struct stream *strm, int err, void *arg)
-{
-	struct media_track *media = arg;
-
-	warning("peerconnection: '%s' stream error (%m)\n",
-		stream_name(strm), err);
-
-	pc_close(media->pc, err);
-}
-
-
 int peerconnection_new(struct peer_connection **pcp,
 		       const struct configuration *config,
 		       const struct mnat *mnat, const struct menc *menc,
@@ -358,12 +310,19 @@ int peerconnection_new(struct peer_connection **pcp,
 }
 
 
+static void mediatrack_close_handler(int err, void *arg)
+{
+	struct peer_connection *pc = arg;
+
+	pc_close(pc, err);
+}
+
+
 int peerconnection_add_audio(struct peer_connection *pc,
 			     const struct config *cfg,
 			     struct list *aucodecl)
 {
 	struct media_track *media;
-	struct stream *strm;
 	bool offerer;
 	int err;
 
@@ -374,7 +333,8 @@ int peerconnection_add_audio(struct peer_connection *pc,
 
 	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
-	media = media_track_add(&pc->medial, pc, MEDIA_KIND_AUDIO);
+	media = media_track_add(&pc->medial, pc, MEDIA_KIND_AUDIO,
+				mediatrack_close_handler, pc);
 
 	err = audio_alloc(&media->u.au, &pc->streaml, &pc->stream_prm, cfg,
 			  NULL, pc->sdp, pc->mnat, pc->mnats,
@@ -385,11 +345,7 @@ int peerconnection_add_audio(struct peer_connection *pc,
 		return err;
 	}
 
-	strm = audio_strm(media->u.au);
-
-	/* todo: move to mediatrack.c ? */
-	stream_set_session_handlers(strm, mnatconn_handler, rtpestab_handler,
-				    rtcp_handler, stream_error_handler, media);
+	mediatrack_set_handlers(media);
 
 	return 0;
 }
@@ -400,7 +356,6 @@ int peerconnection_add_video(struct peer_connection *pc,
 			 struct list *vidcodecl)
 {
 	struct media_track *media;
-	struct stream *strm;
 	bool offerer;
 	int err;
 
@@ -411,7 +366,8 @@ int peerconnection_add_video(struct peer_connection *pc,
 
 	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
-	media = media_track_add(&pc->medial, pc, MEDIA_KIND_VIDEO);
+	media = media_track_add(&pc->medial, pc, MEDIA_KIND_VIDEO,
+				mediatrack_close_handler, pc);
 
 	err = video_alloc(&media->u.vid, &pc->streaml, &pc->stream_prm, cfg,
 			  pc->sdp, pc->mnat, pc->mnats, pc->menc, pc->mencs,
@@ -422,12 +378,7 @@ int peerconnection_add_video(struct peer_connection *pc,
 		return err;
 	}
 
-	strm = video_strm(media->u.vid);
-
-	stream_set_session_handlers(strm, mnatconn_handler,
-				    rtpestab_handler,
-				    rtcp_handler,
-				    stream_error_handler, media);
+	mediatrack_set_handlers(media);
 
 	return 0;
 }
