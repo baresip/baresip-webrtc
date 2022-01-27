@@ -314,59 +314,47 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 	info("demo: handle POST sdp: content is '%r/%r'\n",
 	     &msg->ctyp.type, &msg->ctyp.subtype);
 
-	if (msg->clen) {
+	err = session_description_decode(&sd, msg->mb);
+	if (err)
+		return err;
 
-		if (msg_ctype_cmp(&msg->ctyp, "application", "json")) {
+	if (sd.type == SDP_OFFER) {
 
-			err = session_description_decode(&sd, msg->mb);
-			if (err)
-				goto out;
+		got_offer = true;
+	}
+	else if (sd.type == SDP_ANSWER) {
 
-			if (sd.type == SDP_OFFER) {
-
-				got_offer = true;
-			}
-			else if (sd.type == SDP_ANSWER) {
-
-				err = peerconnection_set_remote_descr(sess->pc,
-								      &sd);
-				if (err) {
-					warning("demo: set remote descr error"
-						" (%m)\n", err);
-					goto out;
-				}
-
-				err = peerconnection_start_ice(sess->pc);
-				if (err) {
-					warning("demo: failed to start ice"
-						" (%m)\n", err);
-					goto out;
-				}
-			}
-			else {
-				warning("demo: invalid session description"
-					" type:"
-					" %s\n",
-					sdptype_name(sd.type));
-				err = EPROTO;
-				goto out;
-			}
-		}
-		else {
-			warning("unknown content-type: %r/%r\n",
-				&msg->ctyp.type, &msg->ctyp.subtype);
-			err = EPROTO;
+		err = peerconnection_set_remote_descr(sess->pc,
+						      &sd);
+		if (err) {
+			warning("demo: set remote descr error"
+				" (%m)\n", err);
 			goto out;
 		}
 
-		if (got_offer) {
+		err = peerconnection_start_ice(sess->pc);
+		if (err) {
+			warning("demo: failed to start ice"
+				" (%m)\n", err);
+			goto out;
+		}
+	}
+	else {
+		warning("demo: invalid session description"
+			" type:"
+			" %s\n",
+			sdptype_name(sd.type));
+		err = EPROTO;
+		goto out;
+	}
 
-			err = peerconnection_set_remote_descr(sess->pc, &sd);
-			if (err) {
-				warning("demo: decode offer failed (%m)\n",
-					err);
-				goto out;
-			}
+	if (got_offer) {
+
+		err = peerconnection_set_remote_descr(sess->pc, &sd);
+		if (err) {
+			warning("demo: decode offer failed (%m)\n",
+				err);
+			goto out;
 		}
 	}
 
@@ -502,9 +490,12 @@ static void http_req_handler(struct http_conn *conn,
 
 		sess = session_lookup(msg);
 		if (sess) {
-			err = handle_post_sdp(sess, msg);
-			if (err)
-				goto out;
+			if (msg->clen &&
+			    msg_ctype_cmp(&msg->ctyp, "application", "json")) {
+				err = handle_post_sdp(sess, msg);
+				if (err)
+					goto out;
+			}
 
 			/* async reply */
 			mem_deref(sess->conn_pending);
