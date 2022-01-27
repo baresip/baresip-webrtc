@@ -24,6 +24,11 @@ struct session {
 };
 
 
+static struct demo {
+	struct list sessl;
+} demo;
+
+
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static const struct mnat *mnat;
@@ -32,7 +37,6 @@ static uint32_t session_counter;
 
 
 static struct configuration pc_config;
-static struct list sessl;
 
 
 static int create_pc(struct session *sess);
@@ -59,14 +63,13 @@ static int session_new(struct session **sessp)
 		return ENOMEM;
 
 	/* generate a unique session id */
-
 	re_sdprintf(&sess->id, "%u", ++session_counter);
 
 	err = create_pc(sess);
 	if (err)
 		goto out;
 
-	list_append(&sessl, &sess->le, sess);
+	list_append(&demo.sessl, &sess->le, sess);
 
  out:
 	if (err)
@@ -106,7 +109,7 @@ static struct session *session_lookup(const struct http_msg *msg)
 		return NULL;
 	}
 
-	for (le = sessl.head; le; le = le->next) {
+	for (le = demo.sessl.head; le; le = le->next) {
 
 		struct session *sess = le->data;
 
@@ -588,7 +591,7 @@ int demo_init(const char *ice_server,
 
 void demo_close(void)
 {
-	list_flush(&sessl);
+	list_flush(&demo.sessl);
 
 	httpssock = mem_deref(httpssock);
 	httpsock = mem_deref(httpsock);
