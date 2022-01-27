@@ -76,6 +76,7 @@ void peerconnection_add_ice_candidate(struct peer_connection *pc,
 int load_file(struct mbuf *mb, const char *filename);
 const char *file_extension(const char *filename);
 const char *extension_to_mimetype(const char *ext);
+int reply_fmt(struct http_conn *conn, const char *ctype, const char *fmt, ...);
 
 
 /*

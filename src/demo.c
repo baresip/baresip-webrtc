@@ -34,8 +34,6 @@ static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static const struct mnat *mnat;
 static const struct menc *menc;
-
-
 static struct configuration pc_config;
 
 
@@ -120,34 +118,6 @@ static struct session *session_lookup(const struct http_msg *msg)
 	warning("demo: session not found (%r)\n", &hdr->val);
 
 	return NULL;
-}
-
-
-static void reply_fmt(struct http_conn *conn, const char *ctype,
-		      const char *fmt, ...)
-{
-	char *buf = NULL;
-	va_list ap;
-	int err;
-
-	va_start(ap, fmt);
-	err = re_vsdprintf(&buf, fmt, ap);
-	va_end(ap);
-
-	if (err)
-		return;
-
-	info("demo: reply: %s\n", ctype);
-
-	http_reply(conn, 200, "OK",
-		   "Content-Type: %s\r\n"
-		   "Content-Length: %zu\r\n"
-		   "Access-Control-Allow-Origin: *\r\n"
-		   "\r\n"
-		   "%s",
-		   ctype, str_len(buf), buf);
-
-	mem_deref(buf);
 }
 
 
