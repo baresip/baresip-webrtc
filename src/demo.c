@@ -317,24 +317,14 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 	if (err)
 		return err;
 
-	if (sd.type == SDP_OFFER) {
-
-		err = peerconnection_set_remote_descr(sess->pc, &sd);
-		if (err) {
-			warning("demo: decode offer failed (%m)\n",
-				err);
-			goto out;
-		}
+	err = peerconnection_set_remote_descr(sess->pc, &sd);
+	if (err) {
+		warning("demo: set remote descr error"
+			" (%m)\n", err);
+		goto out;
 	}
-	else if (sd.type == SDP_ANSWER) {
 
-		err = peerconnection_set_remote_descr(sess->pc,
-						      &sd);
-		if (err) {
-			warning("demo: set remote descr error"
-				" (%m)\n", err);
-			goto out;
-		}
+	if (sd.type == SDP_ANSWER) {
 
 		err = peerconnection_start_ice(sess->pc);
 		if (err) {
@@ -342,14 +332,6 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 				" (%m)\n", err);
 			goto out;
 		}
-	}
-	else {
-		warning("demo: invalid session description"
-			" type:"
-			" %s\n",
-			sdptype_name(sd.type));
-		err = EPROTO;
-		goto out;
 	}
 
 out:
