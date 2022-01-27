@@ -308,7 +308,6 @@ static int create_pc(struct session *sess)
 static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 {
 	struct session_description sd = {-1, NULL};
-	bool got_offer = false;
 	int err = 0;
 
 	info("demo: handle POST sdp: content is '%r/%r'\n",
@@ -320,7 +319,12 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 
 	if (sd.type == SDP_OFFER) {
 
-		got_offer = true;
+		err = peerconnection_set_remote_descr(sess->pc, &sd);
+		if (err) {
+			warning("demo: decode offer failed (%m)\n",
+				err);
+			goto out;
+		}
 	}
 	else if (sd.type == SDP_ANSWER) {
 
@@ -346,16 +350,6 @@ static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
 			sdptype_name(sd.type));
 		err = EPROTO;
 		goto out;
-	}
-
-	if (got_offer) {
-
-		err = peerconnection_set_remote_descr(sess->pc, &sd);
-		if (err) {
-			warning("demo: decode offer failed (%m)\n",
-				err);
-			goto out;
-		}
 	}
 
 out:
