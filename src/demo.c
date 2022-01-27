@@ -26,6 +26,7 @@ struct session {
 
 static struct demo {
 	struct list sessl;
+	uint32_t session_counter;
 } demo;
 
 
@@ -33,7 +34,6 @@ static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static const struct mnat *mnat;
 static const struct menc *menc;
-static uint32_t session_counter;
 
 
 static struct configuration pc_config;
@@ -63,7 +63,7 @@ static int session_new(struct session **sessp)
 		return ENOMEM;
 
 	/* generate a unique session id */
-	re_sdprintf(&sess->id, "%u", ++session_counter);
+	re_sdprintf(&sess->id, "%u", ++demo.session_counter);
 
 	err = create_pc(sess);
 	if (err)
@@ -77,7 +77,7 @@ static int session_new(struct session **sessp)
 	else if (sessp)
 		*sessp = sess;
 
-	return 0;
+	return err;
 }
 
 
