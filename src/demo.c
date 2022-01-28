@@ -314,48 +314,31 @@ out:
 }
 
 
-static int handle_post_candidate(struct session *sess,
-				 const struct http_msg *msg)
+static int handle_post_candidate(struct session *sess, const struct odict *od)
 {
 	const char *cand, *mid;
-	struct odict *od;
-	enum {MAX_DEPTH = 2};
 	struct pl pl_cand;
 	char *cand2 = NULL;
 	int err;
-
-	err = json_decode_odict(&od, 4, (char *)mbuf_buf(msg->mb),
-				mbuf_get_left(msg->mb), MAX_DEPTH);
-	if (err) {
-		warning("demo: candidate: could not decode json (%m)\n", err);
-		return err;
-	}
-
-#if 0
-	re_printf(".... od: %H\n", odict_debug, od);
-#endif
 
 	cand = odict_string(od, "candidate");
 	mid  = odict_string(od, "sdpMid");
 	if (!cand || !mid) {
 		warning("demo: candidate: missing 'candidate' or 'mid'\n");
-		err = EPROTO;
-		goto out;
+		return EPROTO;
 	}
 
 	err = re_regex(cand, str_len(cand), "candidate:[^]+", &pl_cand);
 	if (err)
-		goto out;
+		return err;
 
 	pl_strdup(&cand2, &pl_cand);
 
 	peerconnection_add_ice_candidate(sess->pc, cand2, mid);
 
- out:
 	mem_deref(cand2);
-	mem_deref(od);
 
-	return err;
+	return 0;
 }
 
 
@@ -407,6 +390,7 @@ static void http_req_handler(struct http_conn *conn,
 {
 	struct pl path = PL("/index.html");
 	struct session *sess;
+	struct odict *od = NULL;
 	int err = 0;
 	(void)arg;
 
@@ -460,7 +444,19 @@ static void http_req_handler(struct http_conn *conn,
 
 		sess = session_lookup(msg);
 		if (sess) {
-			handle_post_candidate(sess, msg);
+			enum {MAX_DEPTH = 2};
+
+			err = json_decode_odict(&od, 4,
+						(char *)mbuf_buf(msg->mb),
+						mbuf_get_left(msg->mb),
+						MAX_DEPTH);
+			if (err) {
+				warning("demo: candidate:"
+					" could not decode json (%m)\n", err);
+				goto out;
+			}
+
+			handle_post_candidate(sess, od);
 
 			/* sync reply */
 			http_reply(conn, 200, "OK",
@@ -499,6 +495,7 @@ static void http_req_handler(struct http_conn *conn,
 	}
 
  out:
+	mem_deref(od);
 	if (err)
 		http_ereply(conn, 500, "Server Error");
 }
