@@ -345,19 +345,15 @@ static int handle_post_candidate(struct session *sess, const struct odict *od)
 static void handle_get(struct http_conn *conn, const struct pl *path)
 {
 	const char *ext, *mime;
-	struct mbuf *mb;
+	struct mbuf *mb = NULL;
 	char *buf = NULL;
 	int err;
-
-	mb = mbuf_alloc(8192);
-	if (!mb)
-		return;
 
 	err = re_sdprintf(&buf, "./www%r", path);
 	if (err)
 		goto out;
 
-	err = load_file(mb, buf);
+	err = conf_loadfile(&mb, buf);
 	if (err) {
 		info("demo: not found: %s\n", buf);
 		http_ereply(conn, 404, "Not Found");
