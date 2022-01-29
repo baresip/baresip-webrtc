@@ -37,9 +37,6 @@ static const struct menc *menc;
 static struct configuration pc_config;
 
 
-static int create_pc(struct session *sess);
-
-
 static void destructor(void *data)
 {
 	struct session *sess = data;
@@ -48,34 +45,6 @@ static void destructor(void *data)
 	mem_deref(sess->conn_pending);
 	mem_deref(sess->pc);
 	mem_deref(sess->id);
-}
-
-
-static int session_new(struct session **sessp)
-{
-	struct session *sess;
-	int err;
-
-	sess = mem_zalloc(sizeof(*sess), destructor);
-	if (!sess)
-		return ENOMEM;
-
-	/* generate a unique session id */
-	re_sdprintf(&sess->id, "%u", ++demo.session_counter);
-
-	err = create_pc(sess);
-	if (err)
-		goto out;
-
-	list_append(&demo.sessl, &sess->le, sess);
-
- out:
-	if (err)
-		mem_deref(sess);
-	else if (sessp)
-		*sessp = sess;
-
-	return err;
 }
 
 
@@ -241,12 +210,20 @@ static void peerconnection_close_handler(int err, void *arg)
 }
 
 
-static int create_pc(struct session *sess)
+static int session_new(struct session **sessp)
 {
 	const struct config *config = conf_config();
+	struct session *sess;
 	int err;
 
 	info("demo: create session\n");
+
+	sess = mem_zalloc(sizeof(*sess), destructor);
+	if (!sess)
+		return ENOMEM;
+
+	/* generate a unique session id */
+	re_sdprintf(&sess->id, "%u", ++demo.session_counter);
 
 	/* create a new session object, send SDP to it */
 	err = peerconnection_new(&sess->pc, &pc_config, mnat, menc,
@@ -255,7 +232,7 @@ static int create_pc(struct session *sess)
 				 peerconnection_close_handler, sess);
 	if (err) {
 		warning("demo: session alloc failed (%m)\n", err);
-		return err;
+		goto out;
 	}
 
 	err = peerconnection_add_audio(sess->pc, config, baresip_aucodecl());
@@ -270,9 +247,13 @@ static int create_pc(struct session *sess)
 		goto out;
 	}
 
+	list_append(&demo.sessl, &sess->le, sess);
+
  out:
 	if (err)
-		sess->pc = mem_deref(sess->pc);
+		mem_deref(sess);
+	else if (sessp)
+		*sessp = sess;
 
 	return err;
 }
