@@ -195,8 +195,12 @@ static void peerconnection_estab_handler(struct media_track *media, void *arg)
 		break;
 	}
 
-	if (err)
+	if (err) {
 		session_close(sess, err);
+		return;
+	}
+
+	stream_enable(media_get_stream(media), true);
 }
 
 
