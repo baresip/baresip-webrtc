@@ -54,3 +54,4 @@ dkms.conf
 baresip-webrtc
 opsnr.stt
 speaker.wav
+Makefile
