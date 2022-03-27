@@ -114,8 +114,8 @@ static int reply_descr(struct session *sess, enum sdp_type type,
 	if (err)
 		goto out;
 
-	reply_fmt(sess->conn_pending, "application/json",
-		  "%H", json_encode_odict, od);
+	http_reply_fmt(sess->conn_pending, "application/json",
+		       "%H", json_encode_odict, od);
 
  out:
 	mem_deref(od);

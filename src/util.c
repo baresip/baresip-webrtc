@@ -43,7 +43,8 @@ const char *extension_to_mimetype(const char *ext)
 }
 
 
-int reply_fmt(struct http_conn *conn, const char *ctype, const char *fmt, ...)
+int http_reply_fmt(struct http_conn *conn, const char *ctype,
+		   const char *fmt, ...)
 {
 	char *buf = NULL;
 	va_list ap;
