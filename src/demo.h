@@ -44,29 +44,29 @@ typedef void (peerconnection_estab_h)(struct media_track *media,
 				      void *arg);
 typedef void (peerconnection_close_h)(int err, void *arg);
 
-int peerconnection_new(struct peer_connection **pcp,
-		       const struct configuration *config,
-		       const struct mnat *mnat, const struct menc *menc,
-		       peerconnection_gather_h *gatherh,
-		       peerconnection_estab_h,
-		       peerconnection_close_h *closeh, void *arg);
-int peerconnection_add_audio(struct peer_connection *pc,
+int  peerconnection_new(struct peer_connection **pcp,
+		        const struct configuration *config,
+		        const struct mnat *mnat, const struct menc *menc,
+		        peerconnection_gather_h *gatherh,
+		        peerconnection_estab_h,
+		        peerconnection_close_h *closeh, void *arg);
+int  peerconnection_add_audio(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *aucodecl);
-int peerconnection_add_video(struct peer_connection *pc,
+int  peerconnection_add_video(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *vidcodecl);
-int peerconnection_set_remote_descr(struct peer_connection *pc,
+int  peerconnection_set_remote_descr(struct peer_connection *pc,
 				    const struct session_description *sd);
-int peerconnection_create_offer(struct peer_connection *sess,
+int  peerconnection_create_offer(struct peer_connection *sess,
 				struct mbuf **mb);
-int peerconnection_create_answer(struct peer_connection *sess,
+int  peerconnection_create_answer(struct peer_connection *sess,
 				 struct mbuf **mb);
-int peerconnection_start_ice(struct peer_connection *pc);
-enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
+int  peerconnection_start_ice(struct peer_connection *pc);
 void peerconnection_close(struct peer_connection *pc);
 void peerconnection_add_ice_candidate(struct peer_connection *pc,
 				      const char *cand, const char *mid);
+enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
 
 
 /*
@@ -123,12 +123,13 @@ struct media_track {
 		void *p;
 	} u;
 
-	mediatrack_close_h *closeh;
-	void *arg;
 	bool ice_conn;
 	bool dtls_ok;
 	bool rtp;
 	bool rtcp;
+
+	mediatrack_close_h *closeh;
+	void *arg;
 };
 
 
@@ -139,9 +140,9 @@ int  mediatrack_start_audio(struct media_track *media,
 			    struct list *ausrcl, struct list *aufiltl);
 int  mediatrack_start_video(struct media_track *media);
 void mediatrack_stop(struct media_track *media);
+enum media_kind mediatrack_kind(const struct media_track *media);
+void mediatrack_set_handlers(struct media_track *media);
+void mediatrack_summary(const struct media_track *media);
 struct stream *media_get_stream(const struct media_track *media);
 const char *media_kind_name(enum media_kind kind);
-enum media_kind mediatrack_kind(const struct media_track *media);
-void mediatrack_summary(const struct media_track *media);
-int mediatrack_debug(struct re_printf *pf, const struct media_track *media);
-void mediatrack_set_handlers(struct media_track *media);
+int  mediatrack_debug(struct re_printf *pf, const struct media_track *media);
