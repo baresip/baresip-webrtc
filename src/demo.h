@@ -70,12 +70,6 @@ enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
 
 
 /*
- * FS
- */
-
-
-
-/*
  * HTTP
  */
 
