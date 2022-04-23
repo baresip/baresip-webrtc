@@ -48,7 +48,6 @@ add_executable(${PROJECT_NAME}
   src/mediatrack.c
   src/peerconn.c
   src/http.c
-  src/fs.c
 )
 
 target_link_libraries(${PROJECT_NAME} -lbaresip -lrem -lre -lz -lpthread)

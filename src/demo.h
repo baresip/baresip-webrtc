@@ -73,7 +73,6 @@ enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
  * FS
  */
 
-const char *fs_file_extension(const char *filename);
 
 
 /*
