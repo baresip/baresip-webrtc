@@ -44,10 +44,10 @@ link_directories(/usr/local/lib)
 
 add_executable(${PROJECT_NAME}
   src/demo.c
+  src/http.c
   src/main.c
   src/mediatrack.c
   src/peerconn.c
-  src/http.c
 )
 
 target_link_libraries(${PROJECT_NAME} -lbaresip -lrem -lre -lz -lpthread)
