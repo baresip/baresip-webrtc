@@ -107,23 +107,6 @@ static void destructor(void *data)
 }
 
 
-// todo: move to mediatrack.c
-static struct media_track *lookup_media(const struct list *medial,
-					struct stream *strm)
-{
-	struct le *le;
-
-	for (le = medial->head; le; le = le->next) {
-		struct media_track *media = le->data;
-
-		if (strm == media_get_stream(media))
-			return media;
-	}
-
-	return NULL;
-}
-
-
 static void pc_close(struct peer_connection *pc, int err)
 {
 	peerconnection_close_h *closeh = pc->closeh;
@@ -188,7 +171,7 @@ static void menc_event_handler(enum menc_event event,
 	struct peer_connection *pc = arg;
 	struct media_track *media;
 
-	media = lookup_media(&pc->medial, strm);
+	media = mediatrack_lookup_media(&pc->medial, strm);
 
 	info("peerconnection: mediaenc event '%s' (%s)\n",
 	     menc_event_name(event), prm);

@@ -268,3 +268,17 @@ void mediatrack_set_handlers(struct media_track *media)
 	stream_set_session_handlers(strm, mnatconn_handler, rtpestab_handler,
 				    rtcp_handler, stream_error_handler, media);
 }
+
+
+struct media_track *mediatrack_lookup_media(const struct list *medial,
+					    struct stream *strm)
+{
+	for (struct le *le = list_head(medial); le; le = le->next) {
+		struct media_track *media = le->data;
+
+		if (strm == media_get_stream(media))
+			return media;
+	}
+
+	return NULL;
+}
