@@ -41,3 +41,37 @@ int http_reply_fmt(struct http_conn *conn, const char *ctype,
 
 	return err;
 }
+
+
+/*
+ * format:
+ *
+ * {
+ *   "type" : "answer",
+ *   "sdp" : "v=0\r\ns=-\r\n..."
+ * }
+ *
+ * specification:
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
+ *
+ * NOTE: currentLocalDescription
+ */
+int http_reply_descr(struct http_conn *conn, enum sdp_type type,
+		     struct mbuf *mb_sdp)
+{
+	struct odict *od = NULL;
+	int err;
+
+	err = session_description_encode(&od, type, mb_sdp);
+	if (err)
+		goto out;
+
+	http_reply_fmt(conn, "application/json",
+		       "%H", json_encode_odict, od);
+
+ out:
+	mem_deref(od);
+
+	return err;
+}

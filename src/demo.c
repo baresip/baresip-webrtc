@@ -90,40 +90,6 @@ static struct session *session_lookup(const struct http_msg *msg)
 }
 
 
-/*
- * format:
- *
- * {
- *   "type" : "answer",
- *   "sdp" : "v=0\r\ns=-\r\n..."
- * }
- *
- * specification:
- *
- * https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
- *
- * NOTE: currentLocalDescription
- */
-static int reply_descr(struct http_conn *conn, enum sdp_type type,
-		       struct mbuf *mb_sdp)
-{
-	struct odict *od = NULL;
-	int err;
-
-	err = session_description_encode(&od, type, mb_sdp);
-	if (err)
-		goto out;
-
-	http_reply_fmt(conn, "application/json",
-		       "%H", json_encode_odict, od);
-
- out:
-	mem_deref(od);
-
-	return err;
-}
-
-
 static void peerconnection_gather_handler(void *arg)
 {
 	struct session *sess = arg;
@@ -146,7 +112,7 @@ static void peerconnection_gather_handler(void *arg)
 		return;
 	}
 
-	err = reply_descr(sess->conn_pending, type, mb_sdp);
+	err = http_reply_descr(sess->conn_pending, type, mb_sdp);
 	if (err) {
 		warning("demo: reply error: %m\n", err);
 		goto out;
