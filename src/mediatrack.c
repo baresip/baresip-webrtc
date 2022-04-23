@@ -217,7 +217,7 @@ static void mnatconn_handler(struct stream *strm, void *arg)
 	struct media_track *media = arg;
 	int err;
 
-	info("peerconnection: ice connected (%s)\n", stream_name(strm));
+	info("mediatrack: ice connected (%s)\n", stream_name(strm));
 
 	media->ice_conn = true;
 
@@ -232,7 +232,7 @@ static void rtpestab_handler(struct stream *strm, void *arg)
 {
 	struct media_track *media = arg;
 
-	info("peerconnection: rtp established (%s)\n", stream_name(strm));
+	info("mediatrack: rtp established (%s)\n", stream_name(strm));
 
 	media->rtp = true;
 }
@@ -253,7 +253,7 @@ static void stream_error_handler(struct stream *strm, int err, void *arg)
 {
 	struct media_track *media = arg;
 
-	warning("peerconnection: '%s' stream error (%m)\n",
+	warning("mediatrack: '%s' stream error (%m)\n",
 		stream_name(strm), err);
 
 	media->closeh(err, media->arg);
