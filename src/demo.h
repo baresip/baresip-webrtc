@@ -74,7 +74,6 @@ enum signaling_st peerconnection_signaling(const struct peer_connection *pc);
  */
 
 const char *fs_file_extension(const char *filename);
-const char *fs_extension_to_mimetype(const char *ext);
 
 
 /*
@@ -85,6 +84,7 @@ int http_reply_fmt(struct http_conn *conn, const char *ctype,
 		   const char *fmt, ...);
 int http_reply_descr(struct http_conn *conn, enum sdp_type type,
 		     struct mbuf *mb_sdp);
+const char *http_extension_to_mimetype(const char *ext);
 
 
 /*
