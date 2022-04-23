@@ -1,5 +1,5 @@
 /**
- * @file util.c  Baresip WebRTC demo -- utility functions
+ * @file http.c  Baresip WebRTC demo -- HTTP functions
  *
  * Copyright (C) 2010 Alfred E. Heggestad
  */

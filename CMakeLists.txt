@@ -47,7 +47,7 @@ add_executable(${PROJECT_NAME}
   src/main.c
   src/mediatrack.c
   src/peerconn.c
-  src/util.c
+  src/http.c
   src/fs.c
 )
 
