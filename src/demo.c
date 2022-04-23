@@ -104,7 +104,7 @@ static struct session *session_lookup(const struct http_msg *msg)
  *
  * NOTE: currentLocalDescription
  */
-static int reply_descr(struct session *sess, enum sdp_type type,
+static int reply_descr(struct http_conn *conn, enum sdp_type type,
 		       struct mbuf *mb_sdp)
 {
 	struct odict *od = NULL;
@@ -114,7 +114,7 @@ static int reply_descr(struct session *sess, enum sdp_type type,
 	if (err)
 		goto out;
 
-	http_reply_fmt(sess->conn_pending, "application/json",
+	http_reply_fmt(conn, "application/json",
 		       "%H", json_encode_odict, od);
 
  out:
@@ -146,7 +146,7 @@ static void peerconnection_gather_handler(void *arg)
 		return;
 	}
 
-	err = reply_descr(sess, type, mb_sdp);
+	err = reply_descr(sess->conn_pending, type, mb_sdp);
 	if (err) {
 		warning("demo: reply error: %m\n", err);
 		goto out;
