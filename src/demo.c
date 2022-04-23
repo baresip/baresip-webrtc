@@ -456,6 +456,9 @@ int demo_init(const char *ice_server,
 	int err;
 
 	if (ice_server) {
+
+		info("demo: using ICE server: %s\n", ice_server);
+
 		pl_set_str(&srv, ice_server);
 
 		err = stunuri_decode(&pc_config.ice_server, &srv);

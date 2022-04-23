@@ -15,6 +15,7 @@ static void destructor(void *data)
 	struct media_track *media = data;
 
 	list_unlink(&media->le);
+	mem_deref(media->u.p);
 }
 
 

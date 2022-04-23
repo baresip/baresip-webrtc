@@ -98,7 +98,6 @@ static void destructor(void *data)
 
 		mediatrack_stop(media);
 
-		mem_deref(media->u.p);
 		mem_deref(media);
 	}
 
@@ -108,6 +107,7 @@ static void destructor(void *data)
 }
 
 
+// todo: move to mediatrack.c
 static struct media_track *lookup_media(const struct list *medial,
 					struct stream *strm)
 {
