@@ -10,30 +10,6 @@
 #include "demo.h"
 
 
-const char *file_extension(const char *filename)
-{
-	const char *p;
-
-	if (!filename)
-		return NULL;
-
-	p = strrchr(filename, '.');
-	if (!p)
-		return NULL;
-
-	return p + 1;
-}
-
-
-const char *extension_to_mimetype(const char *ext)
-{
-	if (0 == str_casecmp(ext, "html")) return "text/html";
-	if (0 == str_casecmp(ext, "js"))   return "text/javascript";
-
-	return "application/octet-stream";  /* default */
-}
-
-
 int http_reply_fmt(struct http_conn *conn, const char *ctype,
 		   const char *fmt, ...)
 {

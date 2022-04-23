@@ -345,8 +345,8 @@ static void handle_get(struct http_conn *conn, const struct pl *path)
 		goto out;
 	}
 
-	ext = file_extension(buf);
-	mime = extension_to_mimetype(ext);
+	ext = fs_file_extension(buf);
+	mime = fs_extension_to_mimetype(ext);
 
 	info("demo: loaded file '%s', %zu bytes (%s)\n", buf, mb->end, mime);
 
