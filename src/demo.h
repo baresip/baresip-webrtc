@@ -70,11 +70,17 @@ void peerconnection_add_ice_candidate(struct peer_connection *pc,
 
 
 /*
- * Util
+ * FS
  */
 
 const char *fs_file_extension(const char *filename);
 const char *fs_extension_to_mimetype(const char *ext);
+
+
+/*
+ * HTTP
+ */
+
 int http_reply_fmt(struct http_conn *conn, const char *ctype,
 		   const char *fmt, ...);
 
