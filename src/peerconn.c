@@ -124,7 +124,7 @@ static void audio_error_handler(int err, const char *str, void *arg)
 
 	warning("peerconnection: audio error: %m (%s)\n", err, str);
 
-	media->closeh(err, media->arg);
+	mediatrack_close(media, err);
 }
 
 
@@ -134,7 +134,7 @@ static void video_error_handler(int err, const char *str, void *arg)
 
 	warning("peerconnection: video error: %m (%s)\n", err, str);
 
-	media->closeh(err, media->arg);
+	mediatrack_close(media, err);
 }
 
 

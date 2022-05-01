@@ -282,3 +282,13 @@ struct media_track *mediatrack_lookup_media(const struct list *medial,
 
 	return NULL;
 }
+
+
+void mediatrack_close(struct media_track *media, int err)
+{
+	if (!media)
+		return;
+
+	if (media->closeh)
+		media->closeh(err, media->arg);
+}
