@@ -15,7 +15,7 @@ enum { AUDIO_PTIME = 20 };
 
 struct peer_connection {
 	struct stream_param stream_prm;
-	struct list streaml;
+	struct list streaml;             /* XXX: remove, use medial */
 	struct list medial;
 	struct sdp_session *sdp;
 	const struct mnat *mnat;
