@@ -205,13 +205,15 @@ static int session_new(struct session **sessp)
 		goto out;
 	}
 
-	err = peerconnection_add_audio(sess->pc, config, baresip_aucodecl());
+	err = peerconnection_add_audio_track(sess->pc, config,
+					     baresip_aucodecl());
 	if (err) {
 		warning("demo: add_audio failed (%m)\n", err);
 		goto out;
 	}
 
-	err = peerconnection_add_video(sess->pc, config, baresip_vidcodecl());
+	err = peerconnection_add_video_track(sess->pc, config,
+					     baresip_vidcodecl());
 	if (err) {
 		warning("demo: add_video failed (%m)\n", err);
 		goto out;

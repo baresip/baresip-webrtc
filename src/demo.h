@@ -50,10 +50,10 @@ int  peerconnection_new(struct peer_connection **pcp,
 		        peerconnection_gather_h *gatherh,
 		        peerconnection_estab_h,
 		        peerconnection_close_h *closeh, void *arg);
-int  peerconnection_add_audio(struct peer_connection *pc,
+int  peerconnection_add_audio_track(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *aucodecl);
-int  peerconnection_add_video(struct peer_connection *pc,
+int  peerconnection_add_video_track(struct peer_connection *pc,
 			 const struct config *cfg,
 			 struct list *vidcodecl);
 int  peerconnection_set_remote_descr(struct peer_connection *pc,

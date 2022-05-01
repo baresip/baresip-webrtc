@@ -301,9 +301,12 @@ static void mediatrack_close_handler(int err, void *arg)
 }
 
 
-int peerconnection_add_audio(struct peer_connection *pc,
-			     const struct config *cfg,
-			     struct list *aucodecl)
+/*
+ * RTCPeerConnection.addTrack()
+ */
+int peerconnection_add_audio_track(struct peer_connection *pc,
+				   const struct config *cfg,
+				   struct list *aucodecl)
 {
 	struct media_track *media;
 	bool offerer;
@@ -334,9 +337,12 @@ int peerconnection_add_audio(struct peer_connection *pc,
 }
 
 
-int peerconnection_add_video(struct peer_connection *pc,
-			 const struct config *cfg,
-			 struct list *vidcodecl)
+/*
+ * RTCPeerConnection.addTrack()
+ */
+int peerconnection_add_video_track(struct peer_connection *pc,
+				   const struct config *cfg,
+				   struct list *vidcodecl)
 {
 	struct media_track *media;
 	bool offerer;
