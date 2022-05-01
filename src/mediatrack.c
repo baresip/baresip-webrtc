@@ -292,3 +292,21 @@ void mediatrack_close(struct media_track *media, int err)
 	if (media->closeh)
 		media->closeh(err, media->arg);
 }
+
+
+/* must be done after sdp_decode() */
+void mediatrack_sdp_attr_decode(struct media_track *media)
+{
+	if (!media || !media->u.p)
+		return;
+
+	switch (media->kind) {
+
+	case MEDIA_KIND_VIDEO:
+		video_sdp_attr_decode(media->u.vid);
+		break;
+
+	default:
+		break;
+	}
+}

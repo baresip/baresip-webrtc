@@ -424,18 +424,7 @@ int peerconnection_set_remote_descr(struct peer_connection *pc,
 	for (le = pc->medial.head; le; le = le->next) {
 		struct media_track *media = le->data;
 
-		if (!media->u.p)
-			continue;
-
-		switch (media->kind) {
-
-		case MEDIA_KIND_VIDEO:
-			video_sdp_attr_decode(media->u.vid);
-			break;
-
-		default:
-			break;
-		}
+		mediatrack_sdp_attr_decode(media);
 	}
 
 	/* must be done after sdp_decode() */

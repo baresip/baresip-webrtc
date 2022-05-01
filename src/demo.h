@@ -144,3 +144,4 @@ int  mediatrack_debug(struct re_printf *pf, const struct media_track *media);
 struct media_track *mediatrack_lookup_media(const struct list *medial,
 					    struct stream *strm);
 void mediatrack_close(struct media_track *media, int err);
+void mediatrack_sdp_attr_decode(struct media_track *media);
