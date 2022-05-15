@@ -50,7 +50,6 @@ static const char *signaling_state_name(enum signaling_st ss)
 
 static void pc_summary(const struct peer_connection *pc)
 {
-	struct le *le;
 	size_t i = 0;
 
 	info("*** RTCPeerConnection summary ***\n");
@@ -64,7 +63,7 @@ static void pc_summary(const struct peer_connection *pc)
 	info(".. sdp_dec:  %u\n", pc->sdp_dec_ok);
 	info("\n");
 
-	for (le = pc->medial.head; le; le = le->next, ++i) {
+	for (struct le *le = pc->medial.head; le; le = le->next, ++i) {
 		struct media_track *media = le->data;
 
 		info(".. #%zu '%s'\n", i,

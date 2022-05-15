@@ -68,7 +68,6 @@ static void session_close(struct session *sess, int err)
 static struct session *session_lookup(const struct http_msg *msg)
 {
 	const struct http_hdr *hdr;
-	struct le *le;
 
 	hdr = http_msg_xhdr(msg, "Session-ID");
 	if (!hdr) {
@@ -76,7 +75,7 @@ static struct session *session_lookup(const struct http_msg *msg)
 		return NULL;
 	}
 
-	for (le = demo.sessl.head; le; le = le->next) {
+	for (struct le *le = demo.sessl.head; le; le = le->next) {
 
 		struct session *sess = le->data;
 
