@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 
 	str_ncpy(config->video.src_mod, "avformat",
 		 sizeof(config->video.src_mod));
-	str_ncpy(config->video.src_dev, "lavfi,mptestsrc",
+	str_ncpy(config->video.src_dev, "lavfi,gradients",
 		 sizeof(config->video.src_dev));
 
 	config->audio.level = true;
