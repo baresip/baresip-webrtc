@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
 {
 	struct config *config;
 	const char *stun_user = NULL, *stun_pass = NULL;
-	size_t i;
 	int err = 0;
 
 	for (;;) {
@@ -151,7 +150,7 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	for (i=0; i<ARRAY_SIZE(modv); i++) {
+	for (size_t i=0; i<ARRAY_SIZE(modv); i++) {
 
 		err = module_load(modpath, modv[i]);
 		if (err) {
