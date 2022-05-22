@@ -50,4 +50,4 @@ add_executable(${PROJECT_NAME}
   src/peerconn.c
 )
 
-target_link_libraries(${PROJECT_NAME} -lbaresip -lrem -lre -lz -lpthread)
+target_link_libraries(${PROJECT_NAME} -lbaresip -lrem -lre -lpthread)
