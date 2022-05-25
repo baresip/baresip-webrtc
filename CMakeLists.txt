@@ -31,7 +31,6 @@ include_directories(
   src
   /usr/local/include
   /usr/local/include/re
-  /usr/local/include/rem
 )
 
 link_directories(/usr/local/lib)
@@ -50,4 +49,4 @@ add_executable(${PROJECT_NAME}
   src/peerconn.c
 )
 
-target_link_libraries(${PROJECT_NAME} -lbaresip -lrem -lre)
+target_link_libraries(${PROJECT_NAME} -lbaresip -lre)
