@@ -13,11 +13,15 @@ cmake_minimum_required(VERSION 3.7)
 
 project(baresip-webrtc)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+
 
 ##############################################################################
 #
 # Module/Package Includes
 #
+
+find_package(re REQUIRED)
 
 
 ##############################################################################
@@ -30,7 +34,7 @@ set(CMAKE_C_STANDARD 11)
 include_directories(
   src
   /usr/local/include
-  /usr/local/include/re
+  ${RE_INCLUDE_DIRS}
 )
 
 link_directories(/usr/local/lib)
@@ -49,4 +53,4 @@ add_executable(${PROJECT_NAME}
   src/peerconn.c
 )
 
-target_link_libraries(${PROJECT_NAME} -lbaresip -lre)
+target_link_libraries(${PROJECT_NAME} -lbaresip ${RE_LIBRARIES})
