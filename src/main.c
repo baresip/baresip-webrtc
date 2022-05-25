@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <re.h>
-#include <rem.h>
 #include <baresip.h>
 #include "demo.h"
 
