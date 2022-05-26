@@ -22,6 +22,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 #
 
 find_package(re REQUIRED)
+find_package(baresip REQUIRED)
 
 
 ##############################################################################
@@ -32,9 +33,8 @@ find_package(re REQUIRED)
 set(CMAKE_C_STANDARD 11)
 
 include_directories(
-  src
-  /usr/local/include
   ${RE_INCLUDE_DIRS}
+  ${BARESIP_INCLUDE_DIRS}
 )
 
 link_directories(/usr/local/lib)
@@ -53,4 +53,4 @@ add_executable(${PROJECT_NAME}
   src/peerconn.c
 )
 
-target_link_libraries(${PROJECT_NAME} -lbaresip ${RE_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${BARESIP_LIBRARIES} ${RE_LIBRARIES})
