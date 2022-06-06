@@ -21,8 +21,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 # Module/Package Includes
 #
 
-find_package(re REQUIRED)
-find_package(baresip REQUIRED)
+find_package(RE REQUIRED)
+find_package(BARESIP REQUIRED)
 
 
 ##############################################################################
