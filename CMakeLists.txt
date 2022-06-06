@@ -32,10 +32,7 @@ find_package(BARESIP REQUIRED)
 
 set(CMAKE_C_STANDARD 11)
 
-include_directories(
-  ${RE_INCLUDE_DIRS}
-  ${BARESIP_INCLUDE_DIRS}
-)
+include_directories(${RE_INCLUDE_DIRS} ${BARESIP_INCLUDE_DIRS})
 
 
 ##############################################################################
