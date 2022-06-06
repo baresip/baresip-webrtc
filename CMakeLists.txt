@@ -37,8 +37,6 @@ include_directories(
   ${BARESIP_INCLUDE_DIRS}
 )
 
-link_directories(/usr/local/lib)
-
 
 ##############################################################################
 #
