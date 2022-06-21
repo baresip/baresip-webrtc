@@ -45,6 +45,8 @@ static const char *modconfig =
 	"opus_bitrate       96000\n"
 	"opus_stereo        yes\n"
 	"opus_sprop_stereo  yes\n"
+	"\n"
+	"avformat_pass_through  no\n"
 	;
 
 
