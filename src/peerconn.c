@@ -205,7 +205,7 @@ static void menc_error_handler(int err, void *arg)
 
 
 int peerconnection_new(struct peer_connection **pcp,
-		       const struct configuration *config,
+		       const struct rtc_configuration *config,
 		       const struct mnat *mnat, const struct menc *menc,
 		       peerconnection_gather_h *gatherh,
 		       peerconnection_estab_h *estabh,

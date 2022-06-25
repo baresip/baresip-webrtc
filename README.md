@@ -89,7 +89,7 @@ are VP8, H264.
 | --------------------- | -------------------------- |
 | MediaStream           | n/a                        |
 | MediaStreamTrack      | struct media_track         |
-| RTCConfiguration      | struct configuration       |
+| RTCConfiguration      | struct rtc_configuration   |
 | RTCPeerConnection     | struct peer_connection     |
 | RTCSessionDescription | struct session_description |
 | RTCRtpTransceiver     | struct stream              |

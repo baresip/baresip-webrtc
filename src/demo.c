@@ -34,7 +34,7 @@ static struct http_sock *httpsock;
 static struct http_sock *httpssock;
 static const struct mnat *mnat;
 static const struct menc *menc;
-static struct configuration pc_config;
+static struct rtc_configuration pc_config;
 
 
 static void destructor(void *data)

@@ -31,7 +31,7 @@ enum signaling_st {
 
 
 /* RTCConfiguration */
-struct configuration {
+struct rtc_configuration {
 	struct stun_uri *ice_server;
 	const char *stun_user;
 	const char *credential;
@@ -45,7 +45,7 @@ typedef void (peerconnection_estab_h)(struct media_track *media,
 typedef void (peerconnection_close_h)(int err, void *arg);
 
 int  peerconnection_new(struct peer_connection **pcp,
-		        const struct configuration *config,
+		        const struct rtc_configuration *config,
 		        const struct mnat *mnat, const struct menc *menc,
 		        peerconnection_gather_h *gatherh,
 		        peerconnection_estab_h,
