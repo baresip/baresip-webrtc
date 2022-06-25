@@ -392,9 +392,9 @@ static void http_req_handler(struct http_conn *conn,
 
 		sess = session_lookup(msg);
 		if (sess) {
-			enum {MAX_DEPTH = 2};
+			enum {HASH_SIZE = 4, MAX_DEPTH = 2};
 
-			err = json_decode_odict(&od, 4,
+			err = json_decode_odict(&od, HASH_SIZE,
 						(char *)mbuf_buf(msg->mb),
 						mbuf_get_left(msg->mb),
 						MAX_DEPTH);
