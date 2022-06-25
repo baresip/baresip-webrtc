@@ -27,13 +27,13 @@ struct session {
 static struct demo {
 	struct list sessl;
 	uint32_t session_counter;
+	const struct mnat *mnat;
+	const struct menc *menc;
 } demo;
 
 
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
-static const struct mnat *mnat;
-static const struct menc *menc;
 static struct rtc_configuration pc_config;
 
 
@@ -195,7 +195,7 @@ static int session_new(struct session **sessp)
 	re_sdprintf(&sess->id, "%u", ++demo.session_counter);
 
 	/* create a new session object, send SDP to it */
-	err = peerconnection_new(&sess->pc, &pc_config, mnat, menc,
+	err = peerconnection_new(&sess->pc, &pc_config, demo.mnat, demo.menc,
 				 peerconnection_gather_handler,
 				 peerconnection_estab_handler,
 				 peerconnection_close_handler, sess);
@@ -473,14 +473,14 @@ int demo_init(const char *ice_server,
 	pc_config.stun_user = stun_user;
 	pc_config.credential = credential;
 
-	mnat = mnat_find(baresip_mnatl(), "ice");
-	if (!mnat) {
+	demo.mnat = mnat_find(baresip_mnatl(), "ice");
+	if (!demo.mnat) {
 		warning("demo: medianat 'ice' not found\n");
 		return ENOENT;
 	}
 
-	menc = menc_find(baresip_mencl(), "dtls_srtp");
-	if (!menc) {
+	demo.menc = menc_find(baresip_mencl(), "dtls_srtp");
+	if (!demo.menc) {
 		warning("demo: mediaenc 'dtls-srtp' not found\n");
 		return ENOENT;
 	}
