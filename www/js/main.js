@@ -44,14 +44,6 @@ const gum_constraints = {
 	video: { width:640, height:480, framerate:30 }
 };
 
-/*
- * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer#rtcofferoptions_dictionary
- */
-const offerOptions = {
-	iceRestart:             false,
-	voiceActivityDetection: true
-};
-
 
 function send_candidate(json)
 {
@@ -179,7 +171,7 @@ function send_post_connect()
 			/* Save the session ID */
 			session_id = sessid;
 
-			pc.createOffer(offerOptions)
+			pc.createOffer()
 			.then(function (desc) {
 				console.log("got local description: %s", desc.type);
 
