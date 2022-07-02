@@ -352,6 +352,11 @@ int peerconnection_add_video_track(struct peer_connection *pc,
 
 	info("peerconnection: add video (codecs=%u)\n", list_count(vidcodecl));
 
+	if (list_isempty(vidcodecl)) {
+		warning("peerconnection: no video codecs!\n");
+		return EINVAL;
+	}
+
 	offerer = (pc->signaling_state != SS_HAVE_REMOTE_OFFER);
 
 	media = media_track_add(&pc->medial, MEDIA_KIND_VIDEO,
