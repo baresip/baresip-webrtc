@@ -32,6 +32,12 @@ find_package(BARESIP REQUIRED)
 
 set(CMAKE_C_STANDARD 11)
 
+if(MSVC)
+  add_compile_options("/W3")
+else()
+  add_compile_options(-Wall -Wextra)
+endif()
+
 include_directories(${RE_INCLUDE_DIRS} ${BARESIP_INCLUDE_DIRS})
 
 

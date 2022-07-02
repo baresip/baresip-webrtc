@@ -190,13 +190,16 @@ int mediatrack_debug(struct re_printf *pf, const struct media_track *media)
 
 	case MEDIA_KIND_VIDEO:
 		return video_debug(pf, media->u.vid);
+
+	default:
+		return 0;
 	}
 }
 
 
 enum media_kind mediatrack_kind(const struct media_track *media)
 {
-	return media ? media->kind : -1;
+	return media ? media->kind : (enum media_kind)-1;
 }
 
 
