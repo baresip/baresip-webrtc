@@ -212,10 +212,11 @@ int main(int argc, char *argv[])
 	debug("main: unloading modules..\n");
 	mod_close();
 
+	tmr_debug();
+
 	libre_close();
 
 	/* Check for memory leaks */
-	tmr_debug();
 	mem_debug();
 
 	return err;
