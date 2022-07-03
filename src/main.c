@@ -129,11 +129,11 @@ int main(int argc, char *argv[])
 
 	err = libre_init();
 	if (err) {
-		(void)re_fprintf(stderr, "libre_init: %m\n", err);
+		re_fprintf(stderr, "libre_init: %m\n", err);
 		goto out;
 	}
 
-	(void)sys_coredump_set(true);
+	sys_coredump_set(true);
 
 	err = conf_configure_buf((uint8_t *)modconfig, str_len(modconfig));
 	if (err) {
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	(void)re_main(signal_handler);
+	re_main(signal_handler);
 
 	re_printf("Bye for now\n");
 
