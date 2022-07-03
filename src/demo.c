@@ -266,7 +266,7 @@ out:
 }
 
 
-static int handle_post_candidate(struct session *sess, const struct odict *od)
+static int handle_ice_candidate(struct session *sess, const struct odict *od)
 {
 	const char *cand, *mid;
 	struct pl pl_cand;
@@ -404,7 +404,7 @@ static void http_req_handler(struct http_conn *conn,
 				goto out;
 			}
 
-			handle_post_candidate(sess, od);
+			handle_ice_candidate(sess, od);
 
 			/* sync reply */
 			http_reply(conn, 200, "OK",
