@@ -14,7 +14,7 @@ Baresip WebRTC Demo
 4. Start it:
 
 ```
-$ ./baresip-webrtc 
+$ ./baresip-webrtc -i stun:stun.l.google.com:19302
 Local network addresses:
         lo0:  fe80::1
         en5:  fe80::aede:48ff:fe00:1122

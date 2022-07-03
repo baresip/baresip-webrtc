@@ -39,7 +39,7 @@ static const char *modv[] = {
 	"fakevideo"
 };
 
-static const char *ice_server = "stun:stun.l.google.com:19302";
+static const char *ice_server = NULL;
 
 static const char *modconfig =
 	"opus_bitrate       96000\n"
