@@ -141,6 +141,8 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
+	config = conf_config();
+
 	/*
 	 * Initialise the top-level baresip struct, must be
 	 * done AFTER configuration is complete.
@@ -160,8 +162,6 @@ int main(int argc, char *argv[])
 				   " '%s' (%m)\n", modv[i], err);
 		}
 	}
-
-	config = conf_config();
 
 	str_ncpy(config->audio.src_mod, "ausine",
 		 sizeof(config->audio.src_mod));
