@@ -143,6 +143,8 @@ int main(int argc, char *argv[])
 
 	config = conf_config();
 
+	config->net.use_linklocal = false;
+
 	/*
 	 * Initialise the top-level baresip struct, must be
 	 * done AFTER configuration is complete.
