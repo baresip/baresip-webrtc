@@ -28,11 +28,7 @@ const pc_configuration = {
 
 	iceCandidatePoolSize: 0,
 
-	iceServers: [
-	{
-		urls: 'stun:stun.l.google.com:19302'
-	}
-	],
+	iceServers: [],
 
 	iceTransportPolicy: 'all',
 
