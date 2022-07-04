@@ -154,7 +154,8 @@ static void mnat_estab_handler(int err, uint16_t scode, const char *reason,
 		return;
 	}
 
-	info("peerconnection: medianat established/gathered (all streams)\n");
+	info("peerconnection: medianat gathered (%s)\n",
+	     signaling_state_name(pc->signaling_state));
 
 	pc->gather_ok = true;
 
@@ -213,7 +214,7 @@ int peerconnection_new(struct peer_connection **pcp,
 {
 	struct peer_connection *pc;
 	struct sa laddr;
-	bool got_offer = true;
+	bool offerer = false;
 	int err;
 
 	if (!pcp)
@@ -224,8 +225,8 @@ int peerconnection_new(struct peer_connection **pcp,
 
 	sa_set_str(&laddr, "127.0.0.1", 0);
 
-	info("peerconnection: new: laddr = %j, got_offer=%d\n",
-	     &laddr, got_offer);
+	info("peerconnection: new: sdp=%s\n",
+	     offerer ? "Offerer" : "Answerer");
 
 	pc = mem_zalloc(sizeof(*pc), destructor);
 	if (!pc)
@@ -255,7 +256,7 @@ int peerconnection_new(struct peer_connection **pcp,
 				  sa_af(&laddr),
 				  config->ice_server,
 				  config->stun_user, config->credential,
-				  pc->sdp, !got_offer,
+				  pc->sdp, offerer,
 				  mnat_estab_handler, pc);
 		if (err) {
 			warning("peerconnection: medianat session: %m\n", err);
@@ -268,7 +269,7 @@ int peerconnection_new(struct peer_connection **pcp,
 
 		pc->menc = menc;
 
-		err = menc->sessh(&pc->mencs, pc->sdp, !got_offer,
+		err = menc->sessh(&pc->mencs, pc->sdp, offerer,
 				  menc_event_handler,
 				  menc_error_handler, pc);
 		if (err) {
@@ -457,7 +458,7 @@ int peerconnection_create_offer(struct peer_connection *pc, struct mbuf **mb)
 	info("peerconnection: create offer\n");
 
 	if (!pc->gather_ok) {
-		warning("peerconnection: sdp: ice not gathered\n");
+		warning("peerconnection: create_offer: ice not gathered\n");
 		return EPROTO;
 	}
 
@@ -498,7 +499,7 @@ int peerconnection_create_answer(struct peer_connection *pc,
 		return EINVAL;
 
 	if (!pc->gather_ok) {
-		warning("peerconnection: sdp: ice not gathered\n");
+		warning("peerconnection: create_answer: ice not gathered\n");
 		return EPROTO;
 	}
 
