@@ -101,16 +101,16 @@ function connect_call()
 
 		const track = event.track;
 
-		console.log("got remote track: kind='%s'", track.kind);
+		console.log("ontrack: got track: kind='%s'", track.kind);
 
 		if (audio.srcObject !== event.streams[0]) {
 			audio.srcObject = event.streams[0];
-			console.log("received remote audio stream");
+			console.log("ontrack: got audio stream");
 		}
 
 		if (remoteVideo.srcObject !== event.streams[0]) {
 			remoteVideo.srcObject = event.streams[0];
-			console.log("received remote video stream");
+			console.log("ontrack: got video stream");
 		}
 	};
 
