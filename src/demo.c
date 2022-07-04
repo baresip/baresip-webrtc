@@ -394,6 +394,7 @@ static void http_req_handler(struct http_conn *conn,
 		if (sess) {
 			enum {HASH_SIZE = 4, MAX_DEPTH = 2};
 
+			/* XXX: move json decode further up */
 			err = json_decode_odict(&od, HASH_SIZE,
 						(char *)mbuf_buf(msg->mb),
 						mbuf_get_left(msg->mb),
