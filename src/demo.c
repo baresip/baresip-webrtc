@@ -34,7 +34,9 @@ static struct demo {
 
 static struct http_sock *httpsock;
 static struct http_sock *httpssock;
-static struct rtc_configuration pc_config;
+static struct rtc_configuration pc_config = {
+	.offerer = true
+};
 
 
 static void destructor(void *data)
@@ -93,25 +95,35 @@ static void peerconnection_gather_handler(void *arg)
 {
 	struct session *sess = arg;
 	struct mbuf *mb_sdp = NULL;
-	enum signaling_st ss;
 	enum sdp_type type;
 	int err;
 
-	ss = peerconnection_signaling(sess->pc);
-	type = (ss != SS_HAVE_REMOTE_OFFER) ? SDP_OFFER : SDP_ANSWER;
+	switch (peerconnection_signaling(sess->pc)) {
 
-	info("demo: session gathered -- send '%s'\n", sdptype_name(type));
+	case SS_STABLE:
+		type = SDP_OFFER;
+		break;
+
+	case SS_HAVE_LOCAL_OFFER:
+		warning("illegal state\n");
+		type = SDP_OFFER;
+		break;
+
+	case SS_HAVE_REMOTE_OFFER:
+		type = SDP_ANSWER;
+		break;
+	}
+
+	info("demo: session gathered -- send sdp '%s'\n", sdptype_name(type));
 
 	if (type == SDP_OFFER)
 		err = peerconnection_create_offer(sess->pc, &mb_sdp);
 	else
 		err = peerconnection_create_answer(sess->pc, &mb_sdp);
-	if (err) {
-		session_close(sess, err);
-		return;
-	}
+	if (err)
+		goto out;
 
-	err = http_reply_descr(sess->conn_pending, type, mb_sdp);
+	err = http_reply_descr(sess->conn_pending, sess->id, type, mb_sdp);
 	if (err) {
 		warning("demo: reply error: %m\n", err);
 		goto out;
@@ -128,6 +140,9 @@ static void peerconnection_gather_handler(void *arg)
 
  out:
 	mem_deref(mb_sdp);
+
+	if (err)
+		session_close(sess, err);
 }
 
 
@@ -359,14 +374,21 @@ static void http_req_handler(struct http_conn *conn,
 		if (err)
 			goto out;
 
-		/* sync reply */
-		http_reply(conn, 200, "OK",
-			   "Content-Length: 0\r\n"
-			   "Access-Control-Allow-Origin: *\r\n"
-			   "Session-ID: %s\r\n"
-			   "\r\n", sess->id);
+		if (pc_config.offerer) {
+			/* async reply */
+			mem_deref(sess->conn_pending);
+			sess->conn_pending = mem_ref(conn);
+		}
+		else {
+			/* sync reply */
+			http_reply(conn, 201, "Created",
+				   "Content-Length: 0\r\n"
+				   "Access-Control-Allow-Origin: *\r\n"
+				   "Session-ID: %s\r\n"
+				   "\r\n", sess->id);
+		}
 	}
-	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
+	else if (0 == pl_strcasecmp(&msg->met, "PUT") &&
 		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
 
 		sess = session_lookup(msg);
@@ -378,17 +400,26 @@ static void http_req_handler(struct http_conn *conn,
 					goto out;
 			}
 
-			/* async reply */
-			mem_deref(sess->conn_pending);
-			sess->conn_pending = mem_ref(conn);
+			if (pc_config.offerer) {
+
+				/* sync reply */
+				http_reply(conn, 200, "OK",
+					   "Content-Length: 0\r\n"
+					   "Access-Control-Allow-Origin: *\r\n"
+					   "\r\n");
+			}
+			else {
+				/* async reply */
+				mem_deref(sess->conn_pending);
+				sess->conn_pending = mem_ref(conn);
+			}
 		}
 		else {
 			http_ereply(conn, 404, "Session Not Found");
 			return;
 		}
 	}
-	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
-		 0 == pl_strcasecmp(&msg->path, "/candidate")) {
+	else if (0 == pl_strcasecmp(&msg->met, "PATCH")) {
 
 		sess = session_lookup(msg);
 		if (sess) {
@@ -408,7 +439,7 @@ static void http_req_handler(struct http_conn *conn,
 			handle_ice_candidate(sess, od);
 
 			/* sync reply */
-			http_reply(conn, 200, "OK",
+			http_reply(conn, 204, "No Content",
 				   "Content-Length: 0\r\n"
 				   "Access-Control-Allow-Origin: *\r\n"
 				   "\r\n");
@@ -418,10 +449,10 @@ static void http_req_handler(struct http_conn *conn,
 			return;
 		}
 	}
-	else if (0 == pl_strcasecmp(&msg->met, "POST") &&
-		 0 == pl_strcasecmp(&msg->path, "/disconnect")) {
+	else if (0 == pl_strcasecmp(&msg->met, "DELETE")) {
 
-		info("demo: disconnect\n");
+		/* draft-ietf-wish-whip-03 */
+		info("demo: DELETE -> disconnect\n");
 
 		sess = session_lookup(msg);
 		if (sess) {

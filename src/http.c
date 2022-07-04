@@ -10,8 +10,8 @@
 #include "demo.h"
 
 
-int http_reply_fmt(struct http_conn *conn, const char *ctype,
-		   const char *fmt, ...)
+static int http_reply_fmt(struct http_conn *conn, const char *sessid,
+			  const char *ctype, const char *fmt, ...)
 {
 	char *buf = NULL;
 	va_list ap;
@@ -29,13 +29,14 @@ int http_reply_fmt(struct http_conn *conn, const char *ctype,
 
 	info("demo: reply: %s\n", ctype);
 
-	err = http_reply(conn, 200, "OK",
+	err = http_reply(conn, 201, "Created",
 			 "Content-Type: %s\r\n"
 			 "Content-Length: %zu\r\n"
 			 "Access-Control-Allow-Origin: *\r\n"
+			 "Session-ID: %s\r\n"
 			 "\r\n"
 			 "%s",
-			 ctype, str_len(buf), buf);
+			 ctype, str_len(buf), sessid, buf);
 
 	mem_deref(buf);
 
@@ -57,18 +58,21 @@ int http_reply_fmt(struct http_conn *conn, const char *ctype,
  *
  * NOTE: currentLocalDescription
  */
-int http_reply_descr(struct http_conn *conn, enum sdp_type type,
-		     struct mbuf *mb_sdp)
+int http_reply_descr(struct http_conn *conn, const char *sessid,
+		     enum sdp_type type, struct mbuf *mb_sdp)
 {
 	struct odict *od = NULL;
 	int err;
+
+	if (!conn || !mb_sdp)
+		return EINVAL;
 
 	err = session_description_encode(&od, type, mb_sdp);
 	if (err)
 		goto out;
 
-	http_reply_fmt(conn, "application/json",
-		       "%H", json_encode_odict, od);
+	err = http_reply_fmt(conn, sessid, "application/json",
+			     "%H", json_encode_odict, od);
 
  out:
 	mem_deref(od);

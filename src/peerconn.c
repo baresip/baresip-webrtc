@@ -214,7 +214,7 @@ int peerconnection_new(struct peer_connection **pcp,
 {
 	struct peer_connection *pc;
 	struct sa laddr;
-	bool offerer = false;
+	bool offerer = config->offerer;
 	int err;
 
 	if (!pcp)
