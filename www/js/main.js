@@ -36,8 +36,14 @@ const pc_configuration = {
 };
 
 const gum_constraints = {
-	audio: true,
-	video: { width:640, height:480, framerate:30 }
+	audio: {
+		echoCancellation: false
+	},
+	video: {
+		width:640,
+		height:480,
+		framerate:30
+	}
 };
 
 
