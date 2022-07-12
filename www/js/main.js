@@ -118,10 +118,12 @@ function connect_call()
 
 	console.log("Requesting local stream");
 
-	navigator.mediaDevices.getUserMedia(gum_constraints)
-		.then(function(stream) {
+	let safeUserMedia =	navigator.mediaDevices != undefined 
+		? navigator.mediaDevices.getUserMedia(gum_constraints) 
+		: new Promise((_, reject) => reject("navigator.mediaDevices is undefined"));
 
-			disconnectButton.disabled = false;
+	safeUserMedia
+		.then(function(stream) {
 
 			// save the stream
 			localStream = stream;
@@ -141,12 +143,15 @@ function connect_call()
 
 			localStream.getTracks()
 				.forEach(track => pc.addTrack(track, localStream));
-
-			send_post_connect();
+		
 		})
 		.catch(function(error) {
 
 			alert("Get User Media: " + error);
+		})
+		.then(function(stream) {
+			disconnectButton.disabled = false;
+			send_post_connect();
 		});
 }
 
@@ -314,7 +319,7 @@ function disconnect_call()
 {
 	console.log("Disconnecting call");
 
-	localStream.getTracks().forEach(track => track.stop());
+	localStream?.getTracks().forEach(track => track.stop());
 
 	if (pc) {
 		pc.close();
