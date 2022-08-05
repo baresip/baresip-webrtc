@@ -10,40 +10,6 @@
 #include "demo.h"
 
 
-static int http_reply_fmt(struct http_conn *conn, const char *sessid,
-			  const char *ctype, const char *fmt, ...)
-{
-	char *buf = NULL;
-	va_list ap;
-	int err;
-
-	if (!conn || !ctype || !fmt)
-		return EINVAL;
-
-	va_start(ap, fmt);
-	err = re_vsdprintf(&buf, fmt, ap);
-	va_end(ap);
-
-	if (err)
-		return err;
-
-	info("demo: reply: %s\n", ctype);
-
-	err = http_reply(conn, 201, "Created",
-			 "Content-Type: %s\r\n"
-			 "Content-Length: %zu\r\n"
-			 "Access-Control-Allow-Origin: *\r\n"
-			 "Session-ID: %s\r\n"
-			 "\r\n"
-			 "%s",
-			 ctype, str_len(buf), sessid, buf);
-
-	mem_deref(buf);
-
-	return err;
-}
-
-
 /*
  * format:
  *
@@ -61,7 +27,9 @@ static int http_reply_fmt(struct http_conn *conn, const char *sessid,
 int http_reply_descr(struct http_conn *conn, const char *sessid,
 		     enum sdp_type type, struct mbuf *mb_sdp)
 {
+	const char *ctype = "application/json";
 	struct odict *od = NULL;
+	char *buf = NULL;
 	int err;
 
 	if (!conn || !mb_sdp)
@@ -71,10 +39,23 @@ int http_reply_descr(struct http_conn *conn, const char *sessid,
 	if (err)
 		goto out;
 
-	err = http_reply_fmt(conn, sessid, "application/json",
-			     "%H", json_encode_odict, od);
+	err = re_sdprintf(&buf, "%H", json_encode_odict, od);
+	if (err)
+		goto out;
+
+	info("demo: reply: %s\n", ctype);
+
+	err = http_reply(conn, 201, "Created",
+			 "Content-Type: %s\r\n"
+			 "Content-Length: %zu\r\n"
+			 "Access-Control-Allow-Origin: *\r\n"
+			 "Session-ID: %s\r\n"
+			 "\r\n"
+			 "%s",
+			 ctype, str_len(buf), sessid, buf);
 
  out:
+	mem_deref(buf);
 	mem_deref(od);
 
 	return err;
