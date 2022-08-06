@@ -11,14 +11,6 @@
 
 
 /*
- * HTTP
- */
-
-int http_reply_json(struct http_conn *conn, const char *sessid,
-		    const struct odict *od);
-
-
-/*
  * Demo
  */
 
