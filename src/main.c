@@ -31,8 +31,8 @@ static const char *modv[] = {
 	"ausine",
 
 	/* video */
-	"avcodec",
 	"vp8",
+	"avcodec",
 	"vp9",
 	"avformat",
 	"sdl",
