@@ -16,14 +16,6 @@ enum {
 };
 
 
-struct session {
-	struct le le;
-	struct peer_connection *pc;
-	struct http_conn *conn_pending;
-	char id[4];
-};
-
-
 static struct demo {
 	struct list sessl;
 	const struct mnat *mnat;
@@ -45,23 +37,6 @@ static void destructor(void *data)
 	list_unlink(&sess->le);
 	mem_deref(sess->conn_pending);
 	mem_deref(sess->pc);
-}
-
-
-static void session_close(struct session *sess, int err)
-{
-	if (err)
-		warning("demo: session '%s' closed (%m)\n", sess->id, err);
-	else
-		info("demo: session '%s' closed\n", sess->id);
-
-	sess->pc = mem_deref(sess->pc);
-
-	if (err) {
-		http_ereply(sess->conn_pending, 500, "Session closed");
-	}
-
-	mem_deref(sess);
 }
 
 

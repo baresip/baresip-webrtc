@@ -49,6 +49,7 @@ include_directories(${RE_INCLUDE_DIRS} ${BARESIP_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME}
   src/demo.c
   src/main.c
+  src/sess.c
 )
 
 target_link_libraries(${PROJECT_NAME} ${BARESIP_LIBRARIES} ${RE_LIBRARIES})

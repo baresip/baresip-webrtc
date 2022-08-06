@@ -10,6 +10,16 @@
  */
 
 
+struct session {
+	struct le le;
+	struct peer_connection *pc;
+	struct http_conn *conn_pending;
+	char id[4];
+};
+
+void session_close(struct session *sess, int err);
+
+
 /*
  * Demo
  */
