@@ -19,6 +19,8 @@ struct session {
 
 struct session *session_lookup(const struct list *sessl,
 			       const struct http_msg *msg);
+int  session_handle_ice_candidate(struct session *sess,
+				  const struct odict *od);
 void session_close(struct session *sess, int err);
 
 

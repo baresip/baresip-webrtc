@@ -236,34 +236,6 @@ out:
 }
 
 
-static int handle_ice_candidate(struct session *sess, const struct odict *od)
-{
-	const char *cand, *mid;
-	struct pl pl_cand;
-	char *cand2 = NULL;
-	int err;
-
-	cand = odict_string(od, "candidate");
-	mid  = odict_string(od, "sdpMid");
-	if (!cand || !mid) {
-		warning("demo: candidate: missing 'candidate' or 'mid'\n");
-		return EPROTO;
-	}
-
-	err = re_regex(cand, str_len(cand), "candidate:[^]+", &pl_cand);
-	if (err)
-		return err;
-
-	pl_strdup(&cand2, &pl_cand);
-
-	peerconnection_add_ice_candidate(sess->pc, cand2, mid);
-
-	mem_deref(cand2);
-
-	return 0;
-}
-
-
 static void handle_get(struct http_conn *conn, const struct pl *path)
 {
 	const char *ext, *mime;
@@ -391,7 +363,7 @@ static void http_req_handler(struct http_conn *conn,
 				goto out;
 			}
 
-			handle_ice_candidate(sess, od);
+			session_handle_ice_candidate(sess, od);
 
 			/* sync reply */
 			http_reply(conn, 204, "No Content",
