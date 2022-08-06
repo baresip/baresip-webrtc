@@ -60,12 +60,3 @@ int http_reply_descr(struct http_conn *conn, const char *sessid,
 
 	return err;
 }
-
-
-const char *http_extension_to_mimetype(const char *ext)
-{
-	if (0 == str_casecmp(ext, "html")) return "text/html";
-	if (0 == str_casecmp(ext, "js"))   return "text/javascript";
-
-	return "application/octet-stream";  /* default */
-}
