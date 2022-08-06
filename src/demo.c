@@ -93,6 +93,7 @@ static void peerconnection_gather_handler(void *arg)
 {
 	struct session *sess = arg;
 	struct mbuf *mb_sdp = NULL;
+	struct odict *od = NULL;
 	enum sdp_type type;
 	int err;
 
@@ -121,7 +122,11 @@ static void peerconnection_gather_handler(void *arg)
 	if (err)
 		goto out;
 
-	err = http_reply_descr(sess->conn_pending, sess->id, type, mb_sdp);
+	err = session_description_encode(&od, type, mb_sdp);
+	if (err)
+		goto out;
+
+	err = http_reply_json(sess->conn_pending, sess->id, od);
 	if (err) {
 		warning("demo: reply error: %m\n", err);
 		goto out;
@@ -138,6 +143,7 @@ static void peerconnection_gather_handler(void *arg)
 
  out:
 	mem_deref(mb_sdp);
+	mem_deref(od);
 
 	if (err)
 		session_close(sess, err);
