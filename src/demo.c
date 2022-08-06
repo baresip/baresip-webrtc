@@ -28,11 +28,11 @@ static struct demo {
 	struct list sessl;
 	const struct mnat *mnat;
 	const struct menc *menc;
+	struct http_sock *httpsock;
+	struct http_sock *httpssock;
 } demo;
 
 
-static struct http_sock *httpsock;
-static struct http_sock *httpssock;
 static struct rtc_configuration pc_config = {
 	.offerer = true
 };
@@ -524,11 +524,11 @@ int demo_init(const char *ice_server,
 	sa_set_str(&laddr, "0.0.0.0", HTTP_PORT);
 	sa_set_str(&laddrs, "0.0.0.0", HTTPS_PORT);
 
-	err = http_listen(&httpsock, &laddr, http_req_handler, NULL);
+	err = http_listen(&demo.httpsock, &laddr, http_req_handler, NULL);
 	if (err)
 		return err;
 
-	err = https_listen(&httpssock, &laddrs, "./share/cert.pem",
+	err = https_listen(&demo.httpssock, &laddrs, "./share/cert.pem",
 			   http_req_handler, NULL);
 	if (err)
 		return err;
@@ -547,7 +547,7 @@ void demo_close(void)
 {
 	list_flush(&demo.sessl);
 
-	httpssock = mem_deref(httpssock);
-	httpsock = mem_deref(httpsock);
+	demo.httpssock = mem_deref(demo.httpssock);
+	demo.httpsock = mem_deref(demo.httpsock);
 	pc_config.ice_server = mem_deref(pc_config.ice_server);
 }
