@@ -14,6 +14,8 @@
  * HTTP
  */
 
+int http_reply_json(struct http_conn *conn, const char *sessid,
+		    const struct odict *od);
 int http_reply_descr(struct http_conn *conn, const char *sessid,
 		     enum sdp_type type, struct mbuf *mb_sdp);
 
