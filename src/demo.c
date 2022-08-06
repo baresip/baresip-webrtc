@@ -200,12 +200,12 @@ static int session_new(struct session **sessp)
 }
 
 
-static int handle_post_sdp(struct session *sess, const struct http_msg *msg)
+static int handle_put_sdp(struct session *sess, const struct http_msg *msg)
 {
 	struct session_description sd = {-1, NULL};
 	int err = 0;
 
-	info("demo: handle POST sdp: content is '%r/%r'\n",
+	info("demo: handle PUT sdp: content is '%r/%r'\n",
 	     &msg->ctyp.type, &msg->ctyp.subtype);
 
 	err = session_description_decode(&sd, msg->mb);
@@ -322,7 +322,7 @@ static void http_req_handler(struct http_conn *conn,
 		if (sess) {
 			if (msg->clen &&
 			    msg_ctype_cmp(&msg->ctyp, "application", "json")) {
-				err = handle_post_sdp(sess, msg);
+				err = handle_put_sdp(sess, msg);
 				if (err)
 					goto out;
 			}
