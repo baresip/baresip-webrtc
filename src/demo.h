@@ -17,6 +17,8 @@ struct session {
 	char id[4];
 };
 
+struct session *session_lookup(const struct list *sessl,
+			       const struct http_msg *msg);
 void session_close(struct session *sess, int err);
 
 

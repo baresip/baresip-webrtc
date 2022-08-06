@@ -40,30 +40,6 @@ static void destructor(void *data)
 }
 
 
-static struct session *session_lookup(const struct http_msg *msg)
-{
-	const struct http_hdr *hdr;
-
-	hdr = http_msg_xhdr(msg, "Session-ID");
-	if (!hdr) {
-		warning("demo: no Session-ID header\n");
-		return NULL;
-	}
-
-	for (struct le *le = demo.sessl.head; le; le = le->next) {
-
-		struct session *sess = le->data;
-
-		if (0 == pl_strcasecmp(&hdr->val, sess->id))
-			return sess;
-	}
-
-	warning("demo: session not found (%r)\n", &hdr->val);
-
-	return NULL;
-}
-
-
 static void peerconnection_gather_handler(void *arg)
 {
 	struct session *sess = arg;
@@ -370,7 +346,7 @@ static void http_req_handler(struct http_conn *conn,
 	else if (0 == pl_strcasecmp(&msg->met, "PUT") &&
 		 0 == pl_strcasecmp(&msg->path, "/sdp")) {
 
-		sess = session_lookup(msg);
+		sess = session_lookup(&demo.sessl, msg);
 		if (sess) {
 			if (msg->clen &&
 			    msg_ctype_cmp(&msg->ctyp, "application", "json")) {
@@ -400,7 +376,7 @@ static void http_req_handler(struct http_conn *conn,
 	}
 	else if (0 == pl_strcasecmp(&msg->met, "PATCH")) {
 
-		sess = session_lookup(msg);
+		sess = session_lookup(&demo.sessl, msg);
 		if (sess) {
 			enum {HASH_SIZE = 4, MAX_DEPTH = 2};
 
@@ -433,7 +409,7 @@ static void http_req_handler(struct http_conn *conn,
 		/* draft-ietf-wish-whip-03 */
 		info("demo: DELETE -> disconnect\n");
 
-		sess = session_lookup(msg);
+		sess = session_lookup(&demo.sessl, msg);
 		if (sess) {
 			info("demo: closing session %s\n", sess->id);
 			session_close(sess, 0);
