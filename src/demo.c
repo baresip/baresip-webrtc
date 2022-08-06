@@ -20,13 +20,12 @@ struct session {
 	struct le le;
 	struct peer_connection *pc;
 	struct http_conn *conn_pending;
-	char *id;
+	char id[4];
 };
 
 
 static struct demo {
 	struct list sessl;
-	uint32_t session_counter;
 	const struct mnat *mnat;
 	const struct menc *menc;
 } demo;
@@ -46,7 +45,6 @@ static void destructor(void *data)
 	list_unlink(&sess->le);
 	mem_deref(sess->conn_pending);
 	mem_deref(sess->pc);
-	mem_deref(sess->id);
 }
 
 
@@ -207,7 +205,7 @@ static int session_new(struct session **sessp)
 		return ENOMEM;
 
 	/* generate a unique session id */
-	re_sdprintf(&sess->id, "%u", ++demo.session_counter);
+	rand_str(sess->id, sizeof(sess->id));
 
 	/* create a new session object, send SDP to it */
 	err = peerconnection_new(&sess->pc, &pc_config, demo.mnat, demo.menc,
