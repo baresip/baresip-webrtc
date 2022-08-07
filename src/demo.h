@@ -31,6 +31,7 @@ void session_close(struct session *sess, int err);
  * Demo
  */
 
-int  demo_init(const char *server_cert, const char *ice_server,
+int  demo_init(const char *server_cert, const char *www_path,
+	       const char *ice_server,
 	       const char *stun_user, const char *stun_pass);
 void demo_close(void);

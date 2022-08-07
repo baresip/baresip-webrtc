@@ -22,6 +22,7 @@ static struct demo {
 	const struct menc *menc;
 	struct http_sock *httpsock;
 	struct http_sock *httpssock;
+	const char *www_path;
 } demo;
 
 
@@ -73,7 +74,7 @@ static void handle_get(struct http_conn *conn, const struct pl *path)
 	char *buf = NULL;
 	int err;
 
-	err = re_sdprintf(&buf, "./www%r", path);
+	err = re_sdprintf(&buf, "%s%r", demo.www_path, path);
 	if (err)
 		goto out;
 
@@ -239,7 +240,8 @@ static void http_req_handler(struct http_conn *conn,
 }
 
 
-int demo_init(const char *server_cert, const char *ice_server,
+int demo_init(const char *server_cert, const char *www_path,
+	      const char *ice_server,
 	      const char *stun_user, const char *credential)
 {
 	struct pl srv;
@@ -286,6 +288,8 @@ int demo_init(const char *server_cert, const char *ice_server,
 			   http_req_handler, NULL);
 	if (err)
 		return err;
+
+	demo.www_path = www_path;
 
 	info("demo: listening on:\n");
 	info("    http://%j:%u/\n",

@@ -18,7 +18,8 @@
 
 
 static const char *modpath = "/usr/local/lib/baresip/modules";
-static const char *server_cert = "./share/cert.pem";
+static const char *server_cert = "/etc/demo.pem";
+static const char *www_path = "www";
 
 
 static const char *modv[] = {
@@ -72,6 +73,7 @@ static void usage(void)
 		   "\n"
 		   "http:\n"
 		   "\t-c <cert>        HTTP server certificate (%s)\n"
+		   "\t-w <root>        HTTP server document root (%s)\n"
 		   "\n"
 		   "ice:\n"
 		   "\t-i <server>      ICE server (%s)\n"
@@ -79,6 +81,7 @@ static void usage(void)
 		   "\t-p <password>    ICE password\n"
 		   "\n",
 		   server_cert,
+		   www_path,
 		   ice_server);
 }
 
@@ -91,7 +94,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 
-		const int c = getopt(argc, argv, "c:hl:i:u:tvu:p:");
+		const int c = getopt(argc, argv, "c:hl:i:u:tvu:p:w:");
 		if (0 > c)
 			break;
 
@@ -127,6 +130,10 @@ int main(int argc, char *argv[])
 
 		case 'v':
 			log_enable_debug(true);
+			break;
+
+		case 'w':
+			www_path = optarg;
 			break;
 		}
 	}
@@ -197,7 +204,8 @@ int main(int argc, char *argv[])
 	config->avt.rtcp_mux = true;
 	config->avt.rtp_stats = true;
 
-	err = demo_init(server_cert, ice_server, stun_user, stun_pass);
+	err = demo_init(server_cert, www_path,
+			ice_server, stun_user, stun_pass);
 	if (err) {
 		re_fprintf(stderr, "failed to init demo: %m\n", err);
 		goto out;
