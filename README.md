@@ -16,17 +16,7 @@ Baresip WebRTC Demo
 ```
 $ ./baresip-webrtc -i stun:stun.l.google.com:19302
 Local network addresses:
-        lo0:  fe80::1
-        en5:  fe80::aede:48ff:fe00:1122
-        en0:  fe80::1025:b8b1:831d:4fa7
         en0:  172.20.10.3
-      awdl0:  fe80::141a:90ff:fe24:760d
-      utun0:  fe80::8f53:c07e:4132:49ee
-      utun1:  fe80::5784:2447:2d94:4f73
-      utun2:  fe80::cde3:2f20:c893:1eb1
-      utun3:  fe80::c6ef:cfc0:9915:e6f0
-      utun4:  fe80::a150:dafb:ecd0:8c19
-      utun5:  fe80::680a:1d34:966:5ac0
 medianat: ice
 mediaenc: dtls_srtp
 aucodec: opus/48000/2
@@ -77,8 +67,8 @@ are VP8, H264.
 |          |<====================>|           |
 '----------'    ICE/DTLS/SRTP     '-----------'
                 (Audio,Video)
-```                
-                
+```
+
 
 
 
@@ -101,8 +91,9 @@ are VP8, H264.
 
 
 ```
-
-
+.------.                                 .------.
+|Client|                                 |Server|
+'------'                                 '------'
     |             HTTP POST                  |
     +--------------------------------------->+
     |        201 Created (SDP offer)         |
