@@ -18,6 +18,7 @@
 
 
 static const char *modpath = "/usr/local/lib/baresip/modules";
+static const char *server_cert = "./share/cert.pem";
 
 
 static const char *modv[] = {
@@ -69,11 +70,15 @@ static void usage(void)
                    "\t-h               Help\n"
 		   "\t-v               Verbose debug\n"
 		   "\n"
+		   "http:\n"
+		   "\t-c <cert>        HTTP server certificate (%s)\n"
+		   "\n"
 		   "ice:\n"
 		   "\t-i <server>      ICE server (%s)\n"
 		   "\t-u <username>    ICE username\n"
 		   "\t-p <password>    ICE password\n"
 		   "\n",
+		   server_cert,
 		   ice_server);
 }
 
@@ -86,7 +91,7 @@ int main(int argc, char *argv[])
 
 	for (;;) {
 
-		const int c = getopt(argc, argv, "hl:i:u:tvu:p:");
+		const int c = getopt(argc, argv, "c:hl:i:u:tvu:p:");
 		if (0 > c)
 			break;
 
@@ -96,6 +101,10 @@ int main(int argc, char *argv[])
 		default:
 			err = EINVAL;
 			/*@fallthrough@*/
+
+		case 'c':
+			server_cert = optarg;
+			break;
 
 		case 'h':
 			usage();
@@ -188,7 +197,7 @@ int main(int argc, char *argv[])
 	config->avt.rtcp_mux = true;
 	config->avt.rtp_stats = true;
 
-	err = demo_init(ice_server, stun_user, stun_pass);
+	err = demo_init(server_cert, ice_server, stun_user, stun_pass);
 	if (err) {
 		re_fprintf(stderr, "failed to init demo: %m\n", err);
 		goto out;

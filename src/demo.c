@@ -239,7 +239,7 @@ static void http_req_handler(struct http_conn *conn,
 }
 
 
-int demo_init(const char *ice_server,
+int demo_init(const char *server_cert, const char *ice_server,
 	      const char *stun_user, const char *credential)
 {
 	struct pl srv;
@@ -282,7 +282,7 @@ int demo_init(const char *ice_server,
 	if (err)
 		return err;
 
-	err = https_listen(&demo.httpssock, &laddrs, "./share/cert.pem",
+	err = https_listen(&demo.httpssock, &laddrs, server_cert,
 			   http_req_handler, NULL);
 	if (err)
 		return err;
