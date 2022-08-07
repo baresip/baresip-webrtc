@@ -1,8 +1,185 @@
+/**
+ * @file sess.c  Baresip WebRTC demo -- session
+ *
+ * Copyright (C) 2010 - 2022 Alfred E. Heggestad
+ */
 
 #include <string.h>
 #include <re.h>
 #include <baresip.h>
 #include "demo.h"
+
+
+static void destructor(void *data)
+{
+	struct session *sess = data;
+
+	list_unlink(&sess->le);
+	mem_deref(sess->conn_pending);
+	mem_deref(sess->pc);
+}
+
+
+static void peerconnection_gather_handler(void *arg)
+{
+	struct session *sess = arg;
+	struct mbuf *mb_sdp = NULL;
+	struct odict *od = NULL;
+	enum sdp_type type;
+	int err;
+
+	switch (peerconnection_signaling(sess->pc)) {
+
+	case SS_STABLE:
+		type = SDP_OFFER;
+		break;
+
+	case SS_HAVE_LOCAL_OFFER:
+		warning("illegal state\n");
+		type = SDP_OFFER;
+		break;
+
+	case SS_HAVE_REMOTE_OFFER:
+		type = SDP_ANSWER;
+		break;
+	}
+
+	info("demo: session gathered -- send sdp '%s'\n", sdptype_name(type));
+
+	if (type == SDP_OFFER)
+		err = peerconnection_create_offer(sess->pc, &mb_sdp);
+	else
+		err = peerconnection_create_answer(sess->pc, &mb_sdp);
+	if (err)
+		goto out;
+
+	err = session_description_encode(&od, type, mb_sdp);
+	if (err)
+		goto out;
+
+	err = http_reply_json(sess->conn_pending, sess->id, od);
+	if (err) {
+		warning("demo: reply error: %m\n", err);
+		goto out;
+	}
+
+	if (type == SDP_ANSWER) {
+
+		err = peerconnection_start_ice(sess->pc);
+		if (err) {
+			warning("demo: failed to start ice (%m)\n", err);
+			goto out;
+		}
+	}
+
+ out:
+	mem_deref(mb_sdp);
+	mem_deref(od);
+
+	if (err)
+		session_close(sess, err);
+}
+
+
+static void peerconnection_estab_handler(struct media_track *media, void *arg)
+{
+	struct session *sess = arg;
+	int err = 0;
+
+	info("demo: stream established: '%s'\n",
+	     media_kind_name(mediatrack_kind(media)));
+
+	switch (mediatrack_kind(media)) {
+
+	case MEDIA_KIND_AUDIO:
+		err = mediatrack_start_audio(media, baresip_ausrcl(),
+					     baresip_aufiltl());
+		if (err) {
+			warning("demo: could not start audio (%m)\n", err);
+		}
+		break;
+
+	case MEDIA_KIND_VIDEO:
+		err = mediatrack_start_video(media);
+		if (err) {
+			warning("demo: could not start video (%m)\n", err);
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	if (err) {
+		session_close(sess, err);
+		return;
+	}
+
+	stream_enable(media_get_stream(media), true);
+}
+
+
+static void peerconnection_close_handler(int err, void *arg)
+{
+	struct session *sess = arg;
+
+	warning("demo: session closed (%m)\n", err);
+
+	session_close(sess, err);
+}
+
+
+int session_new(struct list *sessl, struct session **sessp,
+		const struct rtc_configuration *pc_config,
+		const struct mnat *mnat, const struct menc *menc)
+{
+	const struct config *config = conf_config();
+	struct session *sess;
+	int err;
+
+	info("demo: create session\n");
+
+	sess = mem_zalloc(sizeof(*sess), destructor);
+	if (!sess)
+		return ENOMEM;
+
+	/* generate a unique session id */
+	rand_str(sess->id, sizeof(sess->id));
+
+	/* create a new session object, send SDP to it */
+	err = peerconnection_new(&sess->pc, pc_config, mnat, menc,
+				 peerconnection_gather_handler,
+				 peerconnection_estab_handler,
+				 peerconnection_close_handler, sess);
+	if (err) {
+		warning("demo: session alloc failed (%m)\n", err);
+		goto out;
+	}
+
+	err = peerconnection_add_audio_track(sess->pc, config,
+					     baresip_aucodecl());
+	if (err) {
+		warning("demo: add_audio failed (%m)\n", err);
+		goto out;
+	}
+
+	err = peerconnection_add_video_track(sess->pc, config,
+					     baresip_vidcodecl());
+	if (err) {
+		warning("demo: add_video failed (%m)\n", err);
+		goto out;
+	}
+
+	list_append(sessl, &sess->le, sess);
+
+ out:
+	if (err)
+		mem_deref(sess);
+	else if (sessp)
+		*sessp = sess;
+
+	return err;
+}
 
 
 struct session *session_lookup(const struct list *sessl,
